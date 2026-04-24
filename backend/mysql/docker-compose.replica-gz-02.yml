@@ -1,0 +1,59 @@
+# =============================================================
+# MySQL 从库（gz-02）— 仅作参考；首次导入前请勿在 command 中加 --read-only=ON
+# =============================================================
+#
+# 首次启动时若带 --read-only=ON，空数据目录初始化会失败，典型报错：
+#   [ERROR] Can't open and lock privilege tables: Table 'mysql.user' doesn't exist
+#
+# 建议流程（均在 gz-02 /opt/docker/backend/mysql 下）：
+#   1. 用本文件（无 read_only）docker compose -f ... up -d
+#   2. 导入主库全量：docker exec -i mysql mysql -uroot -p < full-backup-....sql
+#   3. 执行 CHANGE REPLICATION SOURCE TO ... + START REPLICA
+#   4. 确认 SHOW REPLICA STATUS 双线程 Yes 后，把 --read-only=ON 加回 command，
+#      可合并进本机 docker-compose.yml 再 docker compose up -d --force-recreate
+#
+# 与 集群架构-V1.2：server-id=2、半同步从端、100.79.132.125:3306
+# 复制：本文件为 replica-gz-02.yml 时
+#   docker compose -f docker-compose.replica-gz-02.yml up -d
+# =============================================================
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - TZ=Asia/Shanghai
+
+    ports:
+      - "127.0.0.1:3306:3306"
+      - "100.79.132.125:3306:3306"
+
+    networks:
+      - global_gateway
+
+    volumes:
+      - "./data:/var/lib/mysql"
+
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --performance_schema=off
+      - --innodb_buffer_pool_size=384M
+      - --innodb_io_capacity=200
+      - --server-id=2
+      # 首次建库/导入前不要加 --read-only；复制就绪后再加，见文件头说明
+      - --gtid_mode=ON
+      - --enforce_gtid_consistency=ON
+      - --plugin-load-add=rpl_semi_sync_replica=semisync_replica.so
+      - --rpl_semi_sync_replica_enabled=ON
+
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+
+networks:
+  global_gateway:
+    external: true

@@ -1,0 +1,59 @@
+# =============================================================
+# Docker Compose - MySQL 主库
+# 节点：ops-lab-gz-03（广州·火山引擎 4C8G）
+# 双端口策略：
+#   127.0.0.1:3306 → 本机 ruoyi-admin-1 通过 Docker 内网访问（0ms）
+#   100.92.5.116:3306 → gz-02 ruoyi-admin-2 通过 Tailscale 内网访问（~5ms 同城）
+# 安全边界：两个绑定都不暴露公网，Tailscale 通道本身已 WireGuard 加密
+# =============================================================
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - TZ=Asia/Shanghai
+
+    ports:
+      # gz-03 本机容器（ruoyi-admin-1）通过 Docker 内网 global_gateway 访问，不需要此端口，
+      # 但保留以便宿主机本地调试（mysqldump、mysqlcli 等工具直连）。
+      - "127.0.0.1:3306:3306"
+      # gz-02 的 ruoyi-admin-2 通过 Tailscale 内网访问，绑定 gz-03 的 Tailscale IP。
+      # 同城延迟约 5ms，对业务无感知影响。
+      - "100.92.5.116:3306:3306"
+
+    networks:
+      - global_gateway
+
+    volumes:
+      - "./data:/var/lib/mysql"
+
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --performance_schema=off
+      # gz-03 有 8G 内存，MySQL 独享业务，缓冲池适当增大提升查询性能。
+      - --innodb_buffer_pool_size=512M
+      - --innodb_io_capacity=200
+      - --log-bin=mysql-bin # binlog 文件名前缀，主从复制用
+      - --server-id=1 # 复制拓扑内本实例唯一 ID
+      - --gtid_mode=ON # 全局事务 ID，便于切换与对齐
+      - --enforce_gtid_consistency=ON # 禁止破坏 GTID 一致性的语句
+      - --binlog_format=ROW # 行级 binlog
+      - --binlog_expire_logs_seconds=604800 # binlog 保留 7 天（秒）
+      - --plugin-load-add=rpl_semi_sync_source=semisync_source.so # 加载半同步「主端」插件
+      - --rpl_semi_sync_source_enabled=ON # 主库开启半同步
+      - --rpl_semi_sync_source_wait_for_replica_count=1 # 至少等 1 个从库确认
+      - --rpl_semi_sync_source_timeout=5000 # 超时(ms)未收到确认则退回异步复制
+
+    deploy:
+      resources:
+        limits:
+          # gz-03 业务专用节点，MySQL 可分配更多内存（总 8G，Redis+ruoyi 约占 2G）。
+          memory: 2G
+
+networks:
+  global_gateway:
+    external: true

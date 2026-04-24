@@ -1,0 +1,41 @@
+# =============================================================
+# Docker Compose - 若依后端 · 节点 1
+# 节点：ops-lab-gz-03（广州·火山引擎 4C8G）
+# MySQL：本机容器，通过 Docker 内网访问，0ms 延迟
+# Redis：哨兵模式，Master 就在本机（gz-03），写操作 0ms 延迟
+# 对外：绑定 Tailscale IP，供 gz-01 上的 Nginx 反向代理
+# =============================================================
+
+services:
+
+  ruoyi-admin-1:
+    image: ruoyi-jenkins-docker:latest
+    container_name: ruoyi-admin-1
+    restart: unless-stopped
+
+    ports:
+      # 不绑定公网 IP，所有流量只走 WireGuard 加密隧道，安全。
+      - "100.92.5.116:8080:8080"
+
+    networks:
+      - global_gateway
+
+    environment:
+      - LANG=C.UTF-8
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 -Xms1024m -Xmx1024m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m
+
+      # MySQL：通过 Docker 内网 DNS 直连本机 mysql 容器，延迟 0ms。
+      - SPRING_DATASOURCE_DRUID_MASTER_URL=jdbc:mysql://${DB_HOST}:${DB_PORT}/ry-vue?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai
+      - SPRING_DATASOURCE_DRUID_MASTER_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_DRUID_MASTER_PASSWORD=${DB_PASS}
+
+      # Redis 哨兵模式：Spring 询问任意 Sentinel 获取当前 Master 地址。
+      # Master 就在本机（gz-03），写操作延迟 0ms，故障切换后 Spring 自动重连新 Master。
+      - SPRING_DATA_REDIS_SENTINEL_MASTER=mymaster
+      - SPRING_DATA_REDIS_SENTINEL_NODES=100.118.69.78:26379,100.92.5.116:26379,100.79.132.125:26379
+      - SPRING_DATA_REDIS_PASSWORD=${RUOYI_REDIS_PASS}
+
+
+networks:
+  global_gateway:
+    external: true

@@ -1,0 +1,22 @@
+# ========= 数据目录（绝对不进 Git）=========
+backend/mysql/data/
+backend/redis/data/
+backend/proxysql/data/
+
+# ========= 真实密码文件（不进 Git，只有 .env.example 进入）=========
+**/.env
+
+# ========= SQL 备份文件 =========
+backend/mysql/*.sql
+backend/mysql/*.sql.gz
+
+# ========= SSL 证书 =========
+nginx/certs/
+**/*.pem
+**/*.key
+
+# ========= 系统文件 =========
+.DS_Store
+*.log
+.cursorignore
+monitor/mysqld-exporter.cnf

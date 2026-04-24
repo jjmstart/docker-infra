@@ -1,0 +1,82 @@
+# =============================================================
+# Docker Compose - Redis 主从哨兵集群
+# 节点：ops-lab-gz-03（广州·腾讯云 4C8G）
+# 角色：Master 主节点 + Sentinel 哨兵节点 1
+# =============================================================
+
+services:
+
+  # ── Redis Master ─────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    # always：宿主机重启或容器意外退出后自动重启，保证服务持续可用。
+    restart: always
+
+    ports:
+      # 127.0.0.1:6379：仅允许宿主机本地访问（供本机其他非容器化程序使用）。
+      - "127.0.0.1:6379:6379"
+      # Tailscale 内网 IP：允许 Tailscale 虚拟网络内的其他节点访问。
+      # 作用：gz-02(Slave1) 和 bj-01(Slave2) 通过此地址连接 Master 进行数据同步。
+      # 安全性：Tailscale 是加密的私有内网，公网 IP 不在绑定列表内，外部无法访问。
+      - "100.92.5.116:6379:6379"
+
+    volumes:
+      # 持久化数据目录：RDB 快照和 AOF 日志写入容器内 /data，映射到宿主机 ./data。
+      # 容器删除重建后数据不丢失。
+      - ./data:/data
+      # 外挂配置文件：配置与容器分离，修改配置无需重建镜像，只需重启容器。
+      # :ro（只读挂载）：防止 Redis 进程意外修改配置文件。
+      - ./conf/redis.conf:/etc/redis/redis.conf:ro
+
+    # redis-server 加载外挂配置文件，密码通过命令行参数注入。
+    # --requirepass：客户端连接 Redis 需要提供的密码。
+    # --masterauth：本节点作为 Slave 连接 Master 时的认证密码（故障切换后本节点
+    #   可能变为 Slave，因此 Master 节点也必须配置此项）。
+    # 命令行参数优先级高于 redis.conf，可覆盖同名配置项。
+    command: >
+      redis-server /etc/redis/redis.conf
+      --requirepass ${REDIS_REQUIREPASS}
+      --masterauth ${REDIS_REQUIREPASS}
+
+    deploy:
+      resources:
+        limits:
+          # 内存硬限制（由 Linux cgroups 强制执行）。
+          # 即使 Redis 出现内存泄漏或 bug 突破 maxmemory，也不会耗尽宿主机内存。
+          # 设为 768m（maxmemory 512mb 的 1.5 倍），预留给 AOF 缓冲区、客户端连接等开销。
+          memory: 768m
+
+    networks:
+      # 加入 global_gateway 桥接网络，与同一宿主机上的 Ruoyi 等业务容器互通。
+      # 业务容器通过服务名 "redis" 或容器名访问，无需经过宿主机端口映射。
+      - global_gateway
+
+  # ── Redis Sentinel ───────────────────────────────────────────
+  sentinel:
+    image: redis:7.2-alpine
+    container_name: redis-sentinel
+    restart: always
+
+    # network_mode: host：容器直接共享宿主机的网络命名空间。
+    # 原因：Sentinel 需要监听 Tailscale 虚拟网卡（tailscale0）上的 26379 端口，
+    # 使其他服务器上的 Sentinel 能通过 Tailscale IP 与本哨兵通信。
+    # 若使用 Docker 桥接网络，容器只有 172.17.0.x 地址，其他服务器无法访问。
+    network_mode: host
+
+    volumes:
+      # 注意：Sentinel 运行时会自动改写此文件，追加发现的 Slave 和其他 Sentinel 信息。
+      # 因此不能使用 :ro 只读挂载，否则 Sentinel 启动失败。
+      - ./conf/sentinel.conf:/etc/redis/sentinel.conf
+
+    command: redis-sentinel /etc/redis/sentinel.conf
+
+    # 确保 Redis 容器先启动，再启动 Sentinel（Sentinel 启动时需要连接 Redis 获取信息）。
+    depends_on:
+      - redis
+
+networks:
+  # global_gateway 是跨服务共享的外部网络，由其他 Compose 文件或手动创建。
+  # external: true 表示本文件不负责创建此网络，只是声明使用它。
+  global_gateway:
+    external: true

@@ -1,0 +1,27 @@
+# =============================================================
+# ProxySQL 读写分离
+# 节点：gz-03（100.92.5.116）
+# 写 → hostgroup 0 → MySQL Master 127.0.0.1:3306
+# 读 → hostgroup 1 → MySQL Slave1 100.79.132.125:3306（gz-02）
+# 管理端口 6032 仅 Tailscale 内网可达
+# =============================================================
+
+services:
+  proxysql:
+    image: proxysql/proxysql:latest
+    container_name: proxysql
+    restart: always
+
+    volumes:
+      - "./proxysql.cnf:/etc/proxysql.cnf"
+
+    ports:
+      - "100.92.5.116:6033:6033"
+      - "100.92.5.116:6032:6032"
+
+    networks:
+      - global_gateway
+
+networks:
+  global_gateway:
+    external: true

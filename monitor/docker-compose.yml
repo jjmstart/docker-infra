@@ -1,0 +1,74 @@
+# =============================================================
+# Docker Compose — 监控采集（gz-03）
+# 节点：ops-lab-gz-03（广州·火山引擎）
+# 角色：Node Exporter + mysqld_exporter
+#
+# Prometheus 位于 gz-01，通过 Tailscale 拉取此节点指标：
+#   node-exporter:   100.92.5.116:9100
+#   mysqld_exporter: 100.92.5.116:9104
+# =============================================================
+
+services:
+  # ------------------------------------------------------------
+  # Node Exporter — 采集本机系统指标
+  # ------------------------------------------------------------
+  node-exporter:
+    image: prom/node-exporter:v1.8.0
+    container_name: node-exporter
+    uts: host
+    restart: unless-stopped
+
+    ports:
+      - "100.92.5.116:9100:9100"
+
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ------------------------------------------------------------
+  # mysqld_exporter — 采集 MySQL 指标（主库 Master）
+  # 通过 Docker 内网 global_gateway 连接本机 mysql 容器
+  # ------------------------------------------------------------
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.15.1
+    container_name: mysqld-exporter
+    restart: unless-stopped
+
+    volumes:
+      - "./mysqld-exporter.cnf:/etc/mysqld-exporter.cnf"
+
+    ports:
+      - "100.92.5.116:9104:9104"
+
+    command:
+      - --config.my-cnf=/etc/mysqld-exporter.cnf 
+      - --collect.slave_status        # 复制延迟（Seconds_Behind_Master）
+      - --collect.slave_hosts         # 从库信息
+      - --collect.global_status       # 全局状态变量
+      - --collect.global_variables    # 全局配置变量
+      - --collect.info_schema.processlist
+
+    networks:
+      - global_gateway
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  global_gateway:
+    external: true
