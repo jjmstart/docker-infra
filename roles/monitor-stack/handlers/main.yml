@@ -1,9 +1,8 @@
 ---
 - name: reload prometheus
-  ansible.builtin.uri:
-    url: "http://127.0.0.1:9090/-/reload"
-    method: POST
-    status_code: 200
+  ansible.builtin.command:
+    cmd: docker exec prometheus wget -qO- --post-data="" http://127.0.0.1:9090/-/reload
+  changed_when: false
 
 - name: restart monitor stack
   community.docker.docker_compose_v2:
