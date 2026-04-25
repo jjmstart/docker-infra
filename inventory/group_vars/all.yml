@@ -36,4 +36,3 @@ node_exporter_port: 9100
 mysqld_exporter_port: 9104
 grafana_port: 3000
 
-# e2e webhook test 2026-04-25 18:36:26 +0800
