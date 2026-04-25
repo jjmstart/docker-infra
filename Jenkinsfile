@@ -42,7 +42,10 @@ pipeline {
     }
     stage('Deploy') {
       when {
-        branch 'main'
+        anyOf {
+          branch 'main'
+          expression { env.GIT_BRANCH == 'origin/main' || env.BRANCH_NAME == 'main' }
+        }
       }
       steps {
         withCredentials([
