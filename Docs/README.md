@@ -24,8 +24,8 @@
 
 | 场景 | 应读的文件夹 |
 |------|-------------|
-| 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.2.md`（最新版） |
-| 我要开始执行某次架构演进，需要逐步操作指引 | [runbooks/](runbooks/) → 读对应版本手册（如 `v1.1-to-v1.2.md`） |
+| 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.4.md`（最新版） |
+| 我要开始执行某次架构演进，需要逐步操作指引 | [runbooks/](runbooks/) → 读对应版本手册（如 `v1.3-to-v1.4.md`） |
 | 演进刚完成，我想复盘做了什么、踩了什么坑、加深理解 | [retrospectives/](retrospectives/) → 读对应版本总结（如 `v1.2-retrospective.md`） |
 
 ---
@@ -40,7 +40,8 @@
 | [architecture/v1.0.md](architecture/v1.0.md) | V1.0 | 初始拓扑，监控位于 bj-01（历史归档） |
 | [architecture/v1.1.md](architecture/v1.1.md) | V1.1 | 监控迁至 gz-01，补齐 Node Exporter（历史归档） |
 | [architecture/v1.2.md](architecture/v1.2.md) | V1.2 | MySQL 一主两从 + ProxySQL 读写分离（历史归档） |
-| [architecture/v1.3.md](architecture/v1.3.md) | V1.3 | `/opt/docker` 纳入 Git + GitHub Private 管理（**当前最新**） |
+| [architecture/v1.3.md](architecture/v1.3.md) | V1.3 | `/opt/docker` 纳入 Git + GitHub Private 管理（历史归档） |
+| [architecture/v1.4.md](architecture/v1.4.md) | V1.4 | Ansible + Jenkins CI/CD，git push 全自动下发配置（**当前最新**） |
 
 ### runbooks/
 
@@ -49,7 +50,8 @@
 | [runbooks/README.md](runbooks/README.md) | — | 手册列表索引 |
 | [runbooks/v1.0-to-v1.1.md](runbooks/v1.0-to-v1.1.md) | V1.0 → V1.1 | 监控栈迁移操作手册 |
 | [runbooks/v1.1-to-v1.2.md](runbooks/v1.1-to-v1.2.md) | V1.1 → V1.2 | MySQL 高可用升级操作手册（6 个 Phase） |
-| [runbooks/v1.2-to-v1.3.md](runbooks/v1.2-to-v1.3.md) | V1.2 → V1.3 | Git + GitHub 管理集群配置操作手册（6 个 Phase） |
+| [runbooks/v1.2-to-v1.3.md](runbooks/v1.2-to-v1.3.md) | V1.2 → V1.3 | Git + GitHub 管理集群配置操作手册（Phase 6 未执行，已由 v1.4 取代） |
+| [runbooks/v1.3-to-v1.4.md](runbooks/v1.3-to-v1.4.md) | V1.3 → V1.4 | Ansible + Jenkins CI/CD 全自动配置管理操作手册（9 个 Phase） |
 
 ### retrospectives/
 
