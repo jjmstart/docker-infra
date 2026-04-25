@@ -1,0 +1,18 @@
+---
+- name: Deploy Redis master
+  hosts: redis_master_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - role: redis-master
+      tags: [redis, redis-master]
+
+- name: Deploy Redis replicas
+  hosts: redis_replica_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - role: redis-replica
+      tags: [redis, redis-replica]

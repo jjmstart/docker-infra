@@ -1,0 +1,6 @@
+---
+- name: restart redis
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_root }}/backend/redis"
+    state: present
+    recreate: auto

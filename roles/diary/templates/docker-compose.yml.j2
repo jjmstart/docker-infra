@@ -1,0 +1,29 @@
+services:
+  diary:
+    image: neosmemo/memos:0.26
+    container_name: diary
+    restart: unless-stopped
+
+    ports:
+      - "{{ ansible_host }}:5230:5230"
+
+    networks:
+      - {{ docker_network_name }}
+
+    volumes:
+      - ./data:/var/opt/memos
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  {{ docker_network_name }}:
+    external: true

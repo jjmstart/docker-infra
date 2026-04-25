@@ -1,0 +1,24 @@
+---
+- name: Ensure monitor directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ docker_root }}/monitor"
+    - "{{ docker_root }}/monitor/prometheus"
+    - "{{ docker_root }}/monitor/prometheus/rules"
+
+- name: Render monitor compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_root }}/monitor/docker-compose.yml"
+    mode: "0644"
+  notify: restart monitor stack
+
+- name: Render Prometheus config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ docker_root }}/monitor/prometheus/prometheus.yml"
+    mode: "0644"
+  notify: reload prometheus

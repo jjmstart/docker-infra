@@ -1,0 +1,20 @@
+---
+- name: Ensure ProxySQL directory exists
+  ansible.builtin.file:
+    path: "{{ docker_root }}/backend/proxysql"
+    state: directory
+    mode: "0755"
+
+- name: Render ProxySQL config
+  ansible.builtin.template:
+    src: proxysql.cnf.j2
+    dest: "{{ docker_root }}/backend/proxysql/proxysql.cnf"
+    mode: "0600"
+  notify: restart proxysql
+
+- name: Render ProxySQL compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_root }}/backend/proxysql/docker-compose.yml"
+    mode: "0644"
+  notify: restart proxysql

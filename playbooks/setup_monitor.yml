@@ -1,0 +1,16 @@
+---
+- name: Deploy monitor stack
+  hosts: monitor_nodes
+  become: true
+  roles:
+    - role: monitor-stack
+      tags: [monitor, prometheus, grafana]
+
+- name: Deploy exporters on database nodes
+  hosts: mysqld_exporter_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - role: node-exporter
+      tags: [exporter, node-exporter, mysqld-exporter]

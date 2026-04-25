@@ -1,0 +1,10 @@
+server {
+    listen 80;
+    server_name test.jjmstart.com; # 确保你的 DNS 已经解析到这台机器
+
+    location / {
+        proxy_pass http://go-server:8080; # 永远死死指向 10001 插槽
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}

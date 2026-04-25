@@ -1,0 +1,44 @@
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    restart: always
+
+    ports:
+      - "127.0.0.1:{{ redis_port }}:6379"
+      - "{{ ansible_host }}:{{ redis_port }}:6379"
+
+    volumes:
+      - ./data:/data
+      - ./conf/redis.conf:/etc/redis/redis.conf:ro
+
+    command: >
+      redis-server /etc/redis/redis.conf
+      --requirepass ${REDIS_REQUIREPASS}
+      --masterauth ${REDIS_REQUIREPASS}
+
+    deploy:
+      resources:
+        limits:
+          memory: {{ redis_memory_limit }}
+
+    networks:
+      - {{ docker_network_name }}
+
+  sentinel:
+    image: redis:7.2-alpine
+    container_name: redis-sentinel
+    restart: always
+    network_mode: host
+
+    volumes:
+      - ./conf/sentinel.conf:/etc/redis/sentinel.conf
+
+    command: redis-sentinel /etc/redis/sentinel.conf
+
+    depends_on:
+      - redis
+
+networks:
+  {{ docker_network_name }}:
+    external: true

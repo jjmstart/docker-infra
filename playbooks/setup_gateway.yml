@@ -1,0 +1,7 @@
+---
+- name: Deploy Nginx gateway
+  hosts: gateway_nodes
+  become: true
+  roles:
+    - role: nginx
+      tags: [nginx, gateway]

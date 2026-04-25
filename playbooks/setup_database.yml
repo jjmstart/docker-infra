@@ -1,0 +1,27 @@
+---
+- name: Deploy MySQL master
+  hosts: db_master_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - role: mysql-master
+      tags: [mysql, mysql-master]
+
+- name: Deploy MySQL replicas
+  hosts: db_replica_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - role: mysql-replica
+      tags: [mysql, mysql-replica]
+
+- name: Deploy ProxySQL
+  hosts: db_proxy_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - role: proxysql
+      tags: [proxysql]

@@ -1,0 +1,13 @@
+---
+- name: Ensure Diary directory exists
+  ansible.builtin.file:
+    path: "{{ docker_root }}/backend/diary-site"
+    state: directory
+    mode: "0755"
+
+- name: Render Diary compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_root }}/backend/diary-site/docker-compose.yml"
+    mode: "0644"
+  notify: restart diary

@@ -1,0 +1,13 @@
+---
+- name: Ensure Jenkins directory exists
+  ansible.builtin.file:
+    path: "{{ docker_root }}/cicd/jenkins"
+    state: directory
+    mode: "0755"
+
+- name: Render Jenkins compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_root }}/cicd/jenkins/docker-compose.yml"
+    mode: "0644"
+  notify: restart jenkins

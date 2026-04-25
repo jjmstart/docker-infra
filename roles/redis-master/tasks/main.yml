@@ -1,0 +1,37 @@
+---
+- name: Ensure Redis directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ docker_root }}/backend/redis"
+    - "{{ docker_root }}/backend/redis/conf"
+
+- name: Render Redis master env file
+  ansible.builtin.template:
+    src: .env.j2
+    dest: "{{ docker_root }}/backend/redis/.env"
+    mode: "0600"
+  notify: restart redis
+
+- name: Render Redis master compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_root }}/backend/redis/docker-compose.yml"
+    mode: "0644"
+  notify: restart redis
+
+- name: Render Redis master config
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ docker_root }}/backend/redis/conf/redis.conf"
+    mode: "0644"
+  notify: restart redis
+
+- name: Render Redis master sentinel config
+  ansible.builtin.template:
+    src: sentinel.conf.j2
+    dest: "{{ docker_root }}/backend/redis/conf/sentinel.conf"
+    mode: "0644"
+  notify: restart redis

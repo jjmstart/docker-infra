@@ -1,0 +1,37 @@
+---
+# Common paths
+docker_root: /opt/docker
+
+# Docker network shared by all compose stacks
+docker_network_name: global_gateway
+
+# Cluster hosts
+gz_01_ip: 100.117.7.75
+gz_02_ip: 100.79.132.125
+gz_03_ip: 100.92.5.116
+bj_01_ip: 100.118.69.78
+
+# MySQL topology
+mysql_master_host: 100.92.5.116
+mysql_replica_realtime_host: 100.79.132.125
+mysql_replica_delay_host: 100.118.69.78
+mysql_port: 3306
+
+# ProxySQL
+proxysql_host: 100.92.5.116
+proxysql_mysql_port: 6033
+proxysql_admin_port: 6032
+
+# Redis topology
+redis_master_host: 100.92.5.116
+redis_port: 6379
+redis_sentinel_port: 26379
+redis_sentinel_master_name: mymaster
+
+# Application
+ruoyi_port: 8080
+
+# Monitoring
+node_exporter_port: 9100
+mysqld_exporter_port: 9104
+grafana_port: 3000

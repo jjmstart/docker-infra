@@ -1,0 +1,20 @@
+---
+- name: Ensure MySQL directory exists
+  ansible.builtin.file:
+    path: "{{ docker_root }}/backend/mysql"
+    state: directory
+    mode: "0755"
+
+- name: Render MySQL master env file
+  ansible.builtin.template:
+    src: .env.j2
+    dest: "{{ docker_root }}/backend/mysql/.env"
+    mode: "0600"
+  notify: restart mysql
+
+- name: Render MySQL master compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_root }}/backend/mysql/docker-compose.yml"
+    mode: "0644"
+  notify: restart mysql

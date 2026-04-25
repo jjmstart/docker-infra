@@ -1,0 +1,19 @@
+services:
+  proxysql:
+    image: proxysql/proxysql:latest
+    container_name: proxysql
+    restart: always
+
+    volumes:
+      - "./proxysql.cnf:/etc/proxysql.cnf"
+
+    ports:
+      - "{{ ansible_host }}:{{ proxysql_mysql_port }}:6033"
+      - "{{ ansible_host }}:{{ proxysql_admin_port }}:6032"
+
+    networks:
+      - {{ docker_network_name }}
+
+networks:
+  {{ docker_network_name }}:
+    external: true

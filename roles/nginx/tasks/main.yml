@@ -1,0 +1,31 @@
+---
+- name: Ensure Nginx directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ docker_root }}/proxy/nginx"
+    - "{{ docker_root }}/proxy/nginx/conf.d"
+
+- name: Render Nginx main config
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: "{{ docker_root }}/proxy/nginx/nginx.conf"
+    mode: "0644"
+  notify: reload nginx
+
+- name: Render Nginx site configs
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "{{ docker_root }}/proxy/nginx/conf.d/{{ item | basename | regex_replace('\\.j2$', '') }}"
+    mode: "0644"
+  loop: "{{ lookup('ansible.builtin.fileglob', role_path ~ '/templates/conf.d/*', wantlist=True) }}"
+  notify: reload nginx
+
+- name: Render Nginx compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_root }}/proxy/nginx/docker-compose.yml"
+    mode: "0644"
+  notify: restart nginx

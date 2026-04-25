@@ -1,0 +1,12 @@
+---
+- name: reload prometheus
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:9090/-/reload"
+    method: POST
+    status_code: 200
+
+- name: restart monitor stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_root }}/monitor"
+    state: present
+    recreate: auto

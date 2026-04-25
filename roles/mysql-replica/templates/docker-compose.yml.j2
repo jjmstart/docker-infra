@@ -1,0 +1,45 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: {{ mysql_restart_policy | default('always') }}
+
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - TZ=Asia/Shanghai
+
+    ports:
+      - "127.0.0.1:{{ mysql_port }}:3306"
+      - "{{ ansible_host }}:{{ mysql_port }}:3306"
+
+    networks:
+      - {{ docker_network_name }}
+
+    volumes:
+      - "./data:/var/lib/mysql"
+
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --performance_schema=off
+      - --innodb_buffer_pool_size={{ mysql_buffer_pool_size }}
+      - --innodb_io_capacity=200
+      - --server-id={{ mysql_server_id }}
+      - --read_only=ON
+      - --gtid_mode=ON
+      - --enforce_gtid_consistency=ON
+{% if mysql_enable_binlog | default(false) %}
+      - --log-bin=mysql-bin
+      - --binlog_format=ROW
+      - --binlog_expire_logs_seconds=604800
+{% endif %}
+      - --plugin-load-add=rpl_semi_sync_replica=semisync_replica.so
+      - --rpl_semi_sync_replica_enabled=ON
+
+    deploy:
+      resources:
+        limits:
+          memory: {{ mysql_memory_limit }}
+
+networks:
+  {{ docker_network_name }}:
+    external: true

@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+
+rule_files:
+  - "rules/*.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets:
+          - 'node-exporter:{{ node_exporter_port }}'
+          - '{{ gz_02_ip }}:{{ node_exporter_port }}'
+          - '{{ gz_03_ip }}:{{ node_exporter_port }}'
+          - '{{ bj_01_ip }}:{{ node_exporter_port }}'
+
+  - job_name: 'mysqld-exporter'
+    static_configs:
+      - targets: ['{{ gz_03_ip }}:{{ mysqld_exporter_port }}']
+        labels:
+          instance: 'gz-03'
+          role: 'master'
+      - targets: ['{{ gz_02_ip }}:{{ mysqld_exporter_port }}']
+        labels:
+          instance: 'gz-02'
+          role: 'slave1'
+      - targets: ['{{ bj_01_ip }}:{{ mysqld_exporter_port }}']
+        labels:
+          instance: 'bj-01'
+          role: 'slave2'
