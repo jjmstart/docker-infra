@@ -64,6 +64,7 @@
 | [runbooks/v1.1-to-v1.2.md](runbooks/v1.1-to-v1.2.md) | V1.1 → V1.2 | MySQL 高可用升级操作手册（6 个 Phase） |
 | [runbooks/v1.2-to-v1.3.md](runbooks/v1.2-to-v1.3.md) | V1.2 → V1.3 | Git + GitHub 管理集群配置操作手册（Phase 6 未执行，已由 v1.4 取代） |
 | [runbooks/v1.3-to-v1.4.md](runbooks/v1.3-to-v1.4.md) | V1.3 → V1.4 | Ansible + Jenkins CI/CD 全自动配置管理操作手册（9 个 Phase） |
+| [runbooks/v1.4-to-v1.5.md](runbooks/v1.4-to-v1.5.md) | V1.4 → V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警系统操作手册（8 个 Phase） |
 
 ### retrospectives/
 
