@@ -6,7 +6,7 @@
 
 | 文件 | 目标版本 | 主题 | 状态 |
 |------|----------|------|------|
-| [v1.5-alerting.md](v1.5-alerting.md) | V1.5 | 告警系统：Prometheus + Alertmanager + 手机通知 | 待撰写 |
+| [v1.5-alerting.md](v1.5-alerting.md) | V1.5 | 告警系统：Prometheus + Alertmanager + 手机通知 | 草案设计中 |
 
 ## 使用约定
 
