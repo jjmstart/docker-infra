@@ -1,10 +1,14 @@
-# /opt/docker/Docs — 文档中心
+# /opt/docker-infra/Docs — 文档中心
 
-本目录是集群文档的统一入口，按用途分为三个子文件夹。
+本目录是集群文档的统一入口，按用途分为四个子文件夹。V1.4 之后，`/opt/docker-infra` 是 Git/Ansible 控制仓库，Docs 跟随 Git 工作流管理：草案用于讨论，runbook 用于执行，architecture 记录已落地状态，retrospective 用于复盘。
 
 ---
 
 ## 文件夹说明
+
+### [proposals/](proposals/) — 架构设计草案
+
+每次架构演进落地前的一份设计草案，记录目标、方案、影响范围、风险与验收标准。草案可反复修改，不代表当前线上状态。
 
 ### [architecture/](architecture/) — 集群架构快照
 
@@ -24,6 +28,7 @@
 
 | 场景 | 应读的文件夹 |
 |------|-------------|
+| 我想讨论下一次架构升级，还没有开始实施 | [proposals/](proposals/) → 读对应草案（如 `v1.5-alerting.md`） |
 | 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.4.md`（最新版） |
 | 我要开始执行某次架构演进，需要逐步操作指引 | [runbooks/](runbooks/) → 读对应版本手册（如 `v1.3-to-v1.4.md`） |
 | 演进刚完成，我想复盘做了什么、踩了什么坑、加深理解 | [retrospectives/](retrospectives/) → 读对应版本总结（如 `v1.2-retrospective.md`） |
@@ -31,6 +36,13 @@
 ---
 
 ## 文件索引
+
+### proposals/
+
+| 文件 | 目标版本 | 说明 |
+|------|----------|------|
+| [proposals/README.md](proposals/README.md) | — | 架构设计草案索引 |
+| [proposals/v1.5-alerting.md](proposals/v1.5-alerting.md) | V1.5 | 告警系统设计草案（待撰写） |
 
 ### architecture/
 
@@ -67,6 +79,17 @@
 ## 新增版本 / 文档撰写
 
 将 [文档撰写规范.md](文档撰写规范.md) 提供给 AI，即可让 AI 独立完成新版本所有文档的撰写，并知道需要同步更新哪些已有文件。
+
+V1.4 之后，每次架构升级按 Git 发布流程管理：
+
+1. 新建设计草案：`Docs/proposals/vX.Z-topic.md`
+2. 新建或更新 Ansible 配置：如 `roles/xxx/`、`inventory/`、`playbooks/`
+3. 新建升级手册：`Docs/runbooks/vX.Y-to-vX.Z.md`
+4. Jenkins / Ansible 部署验证通过
+5. 新建正式架构快照：`Docs/architecture/vX.Z.md`
+6. 新建复盘：`Docs/retrospectives/vX.Z-retrospective.md`
+7. 更新 README 索引
+8. 打 tag：`arch-vX.Z`
 
 ---
 
