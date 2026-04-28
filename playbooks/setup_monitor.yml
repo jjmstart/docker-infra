@@ -4,7 +4,16 @@
   become: true
   roles:
     - role: monitor-stack
-      tags: [monitor, prometheus, grafana]
+      tags: [monitor, prometheus, grafana, blackbox]
+
+- name: Deploy alertmanager stack
+  hosts: alertmanager_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - role: alertmanager
+      tags: [alertmanager, alerting, feishu]
 
 - name: Deploy exporters on database nodes
   hosts: mysqld_exporter_nodes
