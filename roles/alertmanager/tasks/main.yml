@@ -1,0 +1,23 @@
+---
+- name: Ensure alertmanager directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ docker_root }}/monitor/alertmanager"
+    - "{{ docker_root }}/monitor/alertmanager/data"
+
+- name: Render alertmanager compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_root }}/monitor/alertmanager/docker-compose.yml"
+    mode: "0644"
+  notify: restart alertmanager stack
+
+- name: Render alertmanager config
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ docker_root }}/monitor/alertmanager/alertmanager.yml"
+    mode: "0644"
+  notify: restart alertmanager stack

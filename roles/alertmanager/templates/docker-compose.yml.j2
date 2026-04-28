@@ -1,0 +1,51 @@
+services:
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    restart: unless-stopped
+
+    ports:
+      - "{{ ansible_host }}:{{ alertmanager_port }}:9093"
+
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./data:/alertmanager
+
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.external-url={{ alertmanager_external_url }}"
+      - "--web.listen-address=0.0.0.0:9093"
+
+    networks:
+      - default
+      - {{ docker_network_name }}
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  alertmanager-webhook-adapter:
+    image: {{ alertmanager_webhook_adapter_image }}
+    container_name: alertmanager-webhook-adapter
+    restart: unless-stopped
+
+    command:
+      - "--listen-address=:{{ alertmanager_webhook_adapter_port }}"
+      - "--signature={{ alertmanager_webhook_adapter_signature }}"
+      - "--tmpl-lang=zh"
+
+    networks:
+      - default
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  {{ docker_network_name }}:
+    external: true

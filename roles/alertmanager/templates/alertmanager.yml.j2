@@ -1,0 +1,22 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: feishu
+  group_by: ['alertname', 'cluster', 'job', 'instance', 'severity']
+  group_wait: {{ alert_group_wait }}
+  group_interval: {{ alert_group_interval }}
+  repeat_interval: {{ alert_repeat_interval }}
+
+receivers:
+  - name: feishu
+    webhook_configs:
+      - url: "http://alertmanager-webhook-adapter:{{ alertmanager_webhook_adapter_port }}/webhook/send?channel_type=feishu&token={{ alerting_feishu_webhook_token }}"
+        send_resolved: true
+
+inhibit_rules:
+  - source_matchers:
+      - alertname = "NodeDown"
+    target_matchers:
+      - alertname =~ "NodeExporterDown|NodeDiskSpaceLow|NodeInodeLow|NodeMemoryLow|NodeCPUHigh"
+    equal: ['instance']
