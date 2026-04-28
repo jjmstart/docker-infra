@@ -11,7 +11,7 @@ route:
 receivers:
   - name: feishu
     webhook_configs:
-      - url: "http://alertmanager-webhook-adapter:{{ alertmanager_webhook_adapter_port }}/webhook/send?channel_type=feishu&token={{ alerting_feishu_webhook_token }}"
+      - url: "http://prometheus-alert:{{ prometheus_alert_port }}/prometheusalert?type=fs&tpl=prometheus-fs&fsurl={{ alerting_feishu_webhook_url | urlencode }}"
         send_resolved: true
 
 inhibit_rules:

@@ -53,9 +53,9 @@ alertmanager_port: 9093
 alertmanager_host: "{{ bj_01_ip }}"
 alertmanager_external_url: "http://{{ bj_01_ip }}:9093"
 
-alertmanager_webhook_adapter_port: 8090
-alertmanager_webhook_adapter_image: "bougou/alertmanager-webhook-adapter:v1.1.10"
-alertmanager_webhook_adapter_signature: "docker-infra"
+# 新增
+prometheus_alert_port: 8080
+prometheus_alert_image: "feiyu563/prometheus-alert:v4.9.2"
 
 blackbox_exporter_port: 9115
 blackbox_exporter_image: "prom/blackbox-exporter:v0.25.0"

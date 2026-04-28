@@ -27,15 +27,10 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  alertmanager-webhook-adapter:
-    image: {{ alertmanager_webhook_adapter_image }}
-    container_name: alertmanager-webhook-adapter
+  prometheus-alert:
+    image: {{ prometheus_alert_image }}
+    container_name: prometheus-alert
     restart: unless-stopped
-
-    command:
-      - "--listen-address=:{{ alertmanager_webhook_adapter_port }}"
-      - "--signature={{ alertmanager_webhook_adapter_signature }}"
-      - "--tmpl-lang=zh"
 
     networks:
       - default
