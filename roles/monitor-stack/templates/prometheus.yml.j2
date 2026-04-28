@@ -43,36 +43,44 @@ scrape_configs:
     params:
       module: [http_2xx]
     static_configs:
+
       - targets:
           - https://ruoyi.jjmstart.com
         labels:
           service: ruoyi
           severity: critical
+
       - targets:
           - https://diary.jjmstart.com
         labels:
           service: diary
           severity: warning
+
       - targets:
           - https://jenkins.jjmstart.com
         labels:
           service: jenkins
           severity: warning
+
       - targets:
           - https://monitor.jjmstart.com
         labels:
           service: grafana
           severity: warning
+
       - targets:
           - http://{{ gz_01_ip }}:9090/-/healthy
         labels:
           service: prometheus
           severity: critical
+
       - targets:
           - http://{{ alertmanager_host }}:{{ alertmanager_port }}/-/healthy
         labels:
           service: alertmanager
           severity: critical
+
+
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
