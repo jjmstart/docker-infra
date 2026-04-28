@@ -8,6 +8,13 @@
     - "{{ docker_root }}/monitor/alertmanager"
     - "{{ docker_root }}/monitor/alertmanager/data"
 
+- name: Render prometheus-alert feishu template
+  ansible.builtin.copy:
+    src: prometheus-fs.tpl
+    dest: "{{ docker_root }}/monitor/alertmanager/prometheus-fs.tpl"
+    mode: "0644"
+  notify: restart alertmanager stack
+
 - name: Render alertmanager compose file
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -21,3 +28,14 @@
     dest: "{{ docker_root }}/monitor/alertmanager/alertmanager.yml"
     mode: "0644"
   notify: restart alertmanager stack
+
+- name: Apply pending alertmanager stack changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Apply prometheus-alert feishu template to runtime DB
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      docker exec prometheus-alert sh -c 'sqlite3 /app/db/PrometheusAlertDB.db "update prometheus_alert_d_b set tpl = readfile('\'/app/prometheus-fs.tpl\'') where tplname = '\''prometheus-fs'\'';"'
+    executable: /bin/bash
+  changed_when: false

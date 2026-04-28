@@ -32,6 +32,9 @@ services:
     container_name: prometheus-alert
     restart: unless-stopped
 
+    volumes:
+      - ./prometheus-fs.tpl:/app/prometheus-fs.tpl:ro
+
     networks:
       - default
 
