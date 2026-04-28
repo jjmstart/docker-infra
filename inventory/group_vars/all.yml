@@ -1,38 +1,50 @@
 ---
-# Common paths
+# 全局变量文件，对 hosts.yml 中所有主机生效。
+# 主机级变量（hosts.yml 中单台主机下定义的变量）优先级更高，会覆盖此处同名变量。
+
+# ── 公共路径 ──────────────────────────────────────────────────────────────────
+# 所有 Docker Compose 栈的根目录，各服务的配置/数据子目录均挂载于此
 docker_root: /opt/docker
 
-# Docker network shared by all compose stacks
+# 跨 Compose 栈互通的共享 overlay 网络，需在各主机上提前创建
 docker_network_name: global_gateway
 
-# Cluster hosts
-gz_01_ip: 100.117.7.75
-gz_02_ip: 100.79.132.125
-gz_03_ip: 100.92.5.116
-bj_01_ip: 100.118.69.78
+# ── 集群主机 IP ───────────────────────────────────────────────────────────────
+# 广州节点（Tailscale 内网地址），供 Jinja2 模板和服务配置引用
+gz_01_ip: 100.117.7.75   # 网关 / 监控节点
+gz_02_ip: 100.79.132.125 # 应用 + MySQL 实时从 + Redis 从
+gz_03_ip: 100.92.5.116   # 应用 + MySQL 主 + ProxySQL + Redis 主
+# 北京节点（兼作 Ansible 控制节点，使用 local 连接）
+bj_01_ip: 100.118.69.78  # MySQL 延迟从（延迟 1h）+ Redis 从
 
-# MySQL topology
+# ── MySQL 主从拓扑 ────────────────────────────────────────────────────────────
+# 主库：gz-03，接受写入
 mysql_master_host: 100.92.5.116
+# 实时从库：gz-02，用于读负载分担
 mysql_replica_realtime_host: 100.79.132.125
+# 延迟从库：bj-01，延迟 1 小时，用于误操作回档
 mysql_replica_delay_host: 100.118.69.78
 mysql_port: 3306
 
-# ProxySQL
+# ── ProxySQL ──────────────────────────────────────────────────────────────────
+# 部署在 gz-03，对应用透明地做读写分离
 proxysql_host: 100.92.5.116
-proxysql_mysql_port: 6033
-proxysql_admin_port: 6032
+proxysql_mysql_port: 6033  # 应用连接此端口，ProxySQL 路由到主/从
+proxysql_admin_port: 6032  # ProxySQL 管理界面端口
 
-# Redis topology
+# ── Redis Sentinel 主从拓扑 ───────────────────────────────────────────────────
+# 主节点：gz-03；从节点：gz-02、bj-01；Sentinel 部署在全部 4 台主机
 redis_master_host: 100.92.5.116
 redis_port: 6379
 redis_sentinel_port: 26379
-redis_sentinel_master_name: mymaster
+redis_sentinel_master_name: mymaster  # Sentinel 监控的主节点别名，客户端通过此名称发现主节点
 
-# Application
+# ── 应用服务 ──────────────────────────────────────────────────────────────────
+# RuoYi 后端服务监听端口（部署在 gz-02、gz-03 两个 app_nodes）
 ruoyi_port: 8080
 
-# Monitoring
-node_exporter_port: 9100
-mysqld_exporter_port: 9104
-grafana_port: 3000
+# ── 监控组件端口 ──────────────────────────────────────────────────────────────
+node_exporter_port: 9100    # 主机指标采集，部署在全部 4 台主机
+mysqld_exporter_port: 9104  # MySQL 指标采集，部署在 gz-02、gz-03、bj-01
+grafana_port: 3000          # Grafana 可视化面板，部署在 gz-01
 
