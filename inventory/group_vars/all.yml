@@ -48,3 +48,25 @@ node_exporter_port: 9100    # 主机指标采集，部署在全部 4 台主机
 mysqld_exporter_port: 9104  # MySQL 指标采集，部署在 gz-02、gz-03、bj-01
 grafana_port: 3000          # Grafana 可视化面板，部署在 gz-01
 
+# Alerting
+alertmanager_port: 9093
+alertmanager_host: "{{ bj_01_ip }}"
+alertmanager_external_url: "http://{{ bj_01_ip }}:9093"
+
+alertmanager_webhook_adapter_port: 8090
+alertmanager_webhook_adapter_image: "bougou/alertmanager-webhook-adapter:v1.1.10"
+alertmanager_webhook_adapter_signature: "docker-infra"
+
+blackbox_exporter_port: 9115
+blackbox_exporter_image: "prom/blackbox-exporter:v0.25.0"
+
+alert_repeat_interval: 4h
+alert_group_wait: 30s
+alert_group_interval: 5m
+
+alert_disk_free_percent_critical: 15
+alert_inode_free_percent_warning: 15
+alert_memory_available_percent_warning: 10
+alert_cpu_usage_percent_warning: 85
+alert_mysql_realtime_replica_lag_seconds_warning: 60
+alert_mysql_delay_replica_lag_seconds_warning: 3900
