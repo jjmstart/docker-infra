@@ -29,7 +29,7 @@
 | 场景 | 应读的文件夹 |
 |------|-------------|
 | 我想讨论下一次架构升级，还没有开始实施 | [proposals/](proposals/) → 读对应草案（如 `v1.5-alerting.md`） |
-| 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.4.md`（最新版） |
+| 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.5.md`（最新版） |
 | 我要开始执行某次架构演进，需要逐步操作指引 | [runbooks/](runbooks/) → 读对应版本手册（如 `v1.3-to-v1.4.md`） |
 | 演进刚完成，我想复盘做了什么、踩了什么坑、加深理解 | [retrospectives/](retrospectives/) → 读对应版本总结（如 `v1.2-retrospective.md`） |
 
@@ -42,7 +42,7 @@
 | 文件 | 目标版本 | 说明 |
 |------|----------|------|
 | [proposals/README.md](proposals/README.md) | — | 架构设计草案索引 |
-| [proposals/v1.5-alerting.md](proposals/v1.5-alerting.md) | V1.5 | 告警系统设计草案（待撰写） |
+| [proposals/v1.5-alerting.md](proposals/v1.5-alerting.md) | V1.5 | 告警系统设计草案（已落地，最终状态见 `architecture/v1.5.md`） |
 
 ### architecture/
 
@@ -53,7 +53,8 @@
 | [architecture/v1.1.md](architecture/v1.1.md) | V1.1 | 监控迁至 gz-01，补齐 Node Exporter（历史归档） |
 | [architecture/v1.2.md](architecture/v1.2.md) | V1.2 | MySQL 一主两从 + ProxySQL 读写分离（历史归档） |
 | [architecture/v1.3.md](architecture/v1.3.md) | V1.3 | `/opt/docker` 纳入 Git + GitHub Private 管理（历史归档） |
-| [architecture/v1.4.md](architecture/v1.4.md) | V1.4 | Ansible + Jenkins CI/CD，git push 全自动下发配置（**当前最新**） |
+| [architecture/v1.4.md](architecture/v1.4.md) | V1.4 | Ansible + Jenkins CI/CD，git push 全自动下发配置（历史归档） |
+| [architecture/v1.5.md](architecture/v1.5.md) | V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警闭环（**当前最新**） |
 
 ### runbooks/
 
@@ -74,6 +75,7 @@
 | [retrospectives/v1.1-retrospective.md](retrospectives/v1.1-retrospective.md) | V1.1 | 监控迁移复盘 |
 | [retrospectives/v1.2-retrospective.md](retrospectives/v1.2-retrospective.md) | V1.2 | MySQL 高可用升级复盘（含故障演练 RTO 实测） |
 | [retrospectives/v1.4-retrospective.md](retrospectives/v1.4-retrospective.md) | V1.4 | Ansible + Jenkins CI/CD 统一配置管理复盘 |
+| [retrospectives/v1.5-retrospective.md](retrospectives/v1.5-retrospective.md) | V1.5 | 告警系统闭环与故障演练复盘 |
 
 ---
 
