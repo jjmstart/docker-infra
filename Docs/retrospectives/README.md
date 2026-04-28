@@ -9,3 +9,4 @@
 | [v1.1-retrospective.md](v1.1-retrospective.md) | V1.1 | 2025 年 | 监控栈从 bj-01 迁至 gz-01，实现监控独立，补齐四节点 Node Exporter 全量采集 |
 | [v1.2-retrospective.md](v1.2-retrospective.md) | V1.2 | 2026 年 | MySQL 升级为一主两从 + 半同步 + GTID + ProxySQL 读写分离，故障演练 RTO 实测纯操作约 3 分钟 |
 | [v1.4-retrospective.md](v1.4-retrospective.md) | V1.4 | 2026 年 | Ansible + Jenkins CI/CD 统一配置管理复盘，完成 git push 自动下发全节点配置 |
+| [v1.5-retrospective.md](v1.5-retrospective.md) | V1.5 | 2026 年 | 告警闭环复盘：新增 Prometheus 规则、blackbox-exporter、Alertmanager 和飞书 webhook adapter，Phase 6-8 待补充 |
