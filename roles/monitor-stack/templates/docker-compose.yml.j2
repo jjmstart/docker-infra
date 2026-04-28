@@ -77,6 +77,27 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  blackbox-exporter:
+    image: {{ blackbox_exporter_image }}
+    container_name: blackbox-exporter
+    restart: unless-stopped
+
+    volumes:
+      - ./blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+
+    command:
+      - "--config.file=/etc/blackbox_exporter/config.yml"
+
+    networks:
+      - default
+      - {{ docker_network_name }}
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   {{ docker_network_name }}:
     external: true

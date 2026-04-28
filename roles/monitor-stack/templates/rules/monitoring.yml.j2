@@ -1,0 +1,29 @@
+groups:
+  - name: monitoring
+    rules:
+      - alert: PrometheusTargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus target down"
+          description: "{{ '{{' }} $labels.job {{ '}}' }} / {{ '{{' }} $labels.instance {{ '}}' }} 连续 2 分钟不可采集。"
+
+      - alert: AlertmanagerDown
+        expr: probe_success{job="blackbox-http",service="alertmanager"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alertmanager 不可达"
+          description: "Prometheus 无法通过 blackbox 探测访问 Alertmanager。"
+
+      - alert: BlackboxExporterDown
+        expr: up{job="blackbox-http"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "blackbox-exporter 不可用"
+          description: "blackbox-exporter target 不可采集，入口探测能力失效。"

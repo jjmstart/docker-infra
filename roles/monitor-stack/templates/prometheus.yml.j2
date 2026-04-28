@@ -1,6 +1,12 @@
 global:
   scrape_interval: 15s
 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - '{{ alertmanager_host }}:{{ alertmanager_port }}'
+
 rule_files:
   - "rules/*.yml"
 
@@ -31,3 +37,46 @@ scrape_configs:
         labels:
           instance: 'bj-01'
           role: 'slave2'
+
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://ruoyi.jjmstart.com
+        labels:
+          service: ruoyi
+          severity: critical
+      - targets:
+          - https://diary.jjmstart.com
+        labels:
+          service: diary
+          severity: warning
+      - targets:
+          - https://jenkins.jjmstart.com
+        labels:
+          service: jenkins
+          severity: warning
+      - targets:
+          - https://monitor.jjmstart.com
+        labels:
+          service: grafana
+          severity: warning
+      - targets:
+          - http://{{ gz_01_ip }}:9090/-/healthy
+        labels:
+          service: prometheus
+          severity: critical
+      - targets:
+          - http://{{ alertmanager_host }}:{{ alertmanager_port }}/-/healthy
+        labels:
+          service: alertmanager
+          severity: critical
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:{{ blackbox_exporter_port }}

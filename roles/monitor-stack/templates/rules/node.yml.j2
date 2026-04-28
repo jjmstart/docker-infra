@@ -1,0 +1,47 @@
+groups:
+  - name: node
+    rules:
+      - alert: NodeDown
+        expr: up{job="node-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "节点不可达"
+          description: "{{ '{{' }} $labels.instance {{ '}}' }} 的 node-exporter 连续 2 分钟不可采集。"
+
+      - alert: NodeDiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay",mountpoint="/"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay",mountpoint="/"}) * 100 < {{ alert_disk_free_percent_critical }}
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "根分区可用空间不足"
+          description: "{{ '{{' }} $labels.instance {{ '}}' }} 根分区可用空间低于 {{ alert_disk_free_percent_critical }}%。"
+
+      - alert: NodeInodeLow
+        expr: (node_filesystem_files_free{fstype!~"tmpfs|overlay",mountpoint="/"} / node_filesystem_files{fstype!~"tmpfs|overlay",mountpoint="/"}) * 100 < {{ alert_inode_free_percent_warning }}
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "根分区 inode 可用率偏低"
+          description: "{{ '{{' }} $labels.instance {{ '}}' }} 根分区 inode 可用率低于 {{ alert_inode_free_percent_warning }}%。"
+
+      - alert: NodeMemoryLow
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < {{ alert_memory_available_percent_warning }}
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "节点可用内存偏低"
+          description: "{{ '{{' }} $labels.instance {{ '}}' }} 可用内存低于 {{ alert_memory_available_percent_warning }}%。"
+
+      - alert: NodeCPUHigh
+        expr: (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) * 100 > {{ alert_cpu_usage_percent_warning }}
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "节点 CPU 使用率持续偏高"
+          description: "{{ '{{' }} $labels.instance {{ '}}' }} CPU 使用率连续 10 分钟超过 {{ alert_cpu_usage_percent_warning }}%。"

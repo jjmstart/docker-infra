@@ -1,0 +1,38 @@
+groups:
+  - name: mysql
+    rules:
+      - alert: MySQLMasterDown
+        expr: mysql_up{instance="{{ gz_03_ip }}:{{ mysqld_exporter_port }}"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MySQL Master 不可采集"
+          description: "gz-03 MySQL Master 不可采集或 mysqld-exporter 异常。"
+
+      - alert: MySQLReplicationDown
+        expr: mysql_slave_status_slave_io_running == 0 or mysql_slave_status_slave_sql_running == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MySQL 复制线程异常"
+          description: "{{ '{{' }} $labels.instance {{ '}}' }} MySQL 复制 IO 或 SQL 线程异常。"
+
+      - alert: MySQLRealtimeReplicaLagHigh
+        expr: mysql_slave_status_seconds_behind_master{instance="{{ gz_02_ip }}:{{ mysqld_exporter_port }}"} > {{ alert_mysql_realtime_replica_lag_seconds_warning }}
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MySQL 实时从库复制延迟偏高"
+          description: "gz-02 Slave1 复制延迟超过 {{ alert_mysql_realtime_replica_lag_seconds_warning }} 秒。"
+
+      - alert: MySQLDelayReplicaLagAbnormal
+        expr: mysql_slave_status_seconds_behind_master{instance="{{ bj_01_ip }}:{{ mysqld_exporter_port }}"} > {{ alert_mysql_delay_replica_lag_seconds_warning }}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MySQL 延迟从库复制延迟异常"
+          description: "bj-01 Slave2 复制延迟超过 {{ alert_mysql_delay_replica_lag_seconds_warning }} 秒。"

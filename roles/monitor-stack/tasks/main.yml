@@ -8,6 +8,7 @@
     - "{{ docker_root }}/monitor"
     - "{{ docker_root }}/monitor/prometheus"
     - "{{ docker_root }}/monitor/prometheus/rules"
+    - "{{ docker_root }}/monitor/blackbox"
 
 - name: Render monitor compose file
   ansible.builtin.template:
@@ -21,4 +22,23 @@
     src: prometheus.yml.j2
     dest: "{{ docker_root }}/monitor/prometheus/prometheus.yml"
     mode: "0644"
+  notify: reload prometheus
+
+- name: Render blackbox config
+  ansible.builtin.template:
+    src: blackbox.yml.j2
+    dest: "{{ docker_root }}/monitor/blackbox/blackbox.yml"
+    mode: "0644"
+  notify: restart monitor stack
+
+- name: Render Prometheus alert rules
+  ansible.builtin.template:
+    src: "rules/{{ item }}"
+    dest: "{{ docker_root }}/monitor/prometheus/rules/{{ item | regex_replace('\\.j2$', '') }}"
+    mode: "0644"
+  loop:
+    - node.yml.j2
+    - mysql.yml.j2
+    - blackbox.yml.j2
+    - monitoring.yml.j2
   notify: reload prometheus
