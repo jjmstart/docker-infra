@@ -4,3 +4,4 @@
     project_src: "{{ docker_root }}/monitor"
     state: present
     recreate: auto
+  when: not ansible_check_mode

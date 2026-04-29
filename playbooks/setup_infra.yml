@@ -1,0 +1,7 @@
+---
+- name: Configure Docker daemon
+  hosts: all
+  become: true
+  roles:
+    - role: docker-daemon
+      tags: [infra, docker-daemon]
