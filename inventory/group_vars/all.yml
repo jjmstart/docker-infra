@@ -47,6 +47,7 @@ ruoyi_port: 8080
 node_exporter_port: 9100    # 主机指标采集，部署在全部 4 台主机
 mysqld_exporter_port: 9104  # MySQL 指标采集，部署在 gz-02、gz-03、bj-01
 grafana_port: 3000          # Grafana 可视化面板，部署在 gz-01
+prometheus_port: 9090        # Prometheus 监控，部署在 gz-01
 
 # Alerting
 alertmanager_port: 9093

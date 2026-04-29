@@ -24,6 +24,8 @@ services:
   prometheus:
     image: prom/prometheus:v2.53.0
     container_name: prometheus
+    ports:
+      - "{{ ansible_host }}:{{ prometheus_port }}:9090"
     restart: unless-stopped
 
     networks:
