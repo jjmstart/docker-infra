@@ -27,3 +27,6 @@ secrets-staging/
 bj-01-configs/
 gz-01-configs/
 gz-02-configs/
+
+# ========= Obsidian 工作区配置 =========
+Docs/.obsidian/
