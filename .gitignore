@@ -33,3 +33,6 @@ Docs/.obsidian/
 
 # ========= 个人信息（不进 Git）=========
 Docs/用户画像.md
+
+# ========= Ansible vault 密码文件 =========
+vault/.vault-pass
