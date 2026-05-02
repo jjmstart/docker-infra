@@ -1,0 +1,16 @@
+version: 0.1
+log:
+  accesslog:
+    disabled: false
+  level: info
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+  delete:
+    enabled: true
+http:
+  addr: :5000
+auth:
+  htpasswd:
+    realm: Registry Realm
+    path: /auth/htpasswd

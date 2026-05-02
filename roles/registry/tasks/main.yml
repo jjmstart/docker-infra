@@ -1,0 +1,40 @@
+---
+- name: Ensure registry directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /opt/docker/registry
+    - /opt/docker/registry/data
+    - /opt/docker/registry/auth
+
+- name: Generate registry htpasswd file
+  community.general.htpasswd:
+    path: /opt/docker/registry/auth/htpasswd
+    name: "{{ registry_auth_username }}"
+    password: "{{ registry_auth_password }}"
+    crypt_scheme: bcrypt
+  notify: restart registry
+
+- name: Render registry config file
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: /opt/docker/registry/config.yml
+    mode: "0644"
+  notify: restart registry
+
+- name: Render registry compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/docker/registry/docker-compose.yml
+    mode: "0644"
+  notify: restart registry
+
+- name: Apply pending registry changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure registry container is running
+  community.docker.docker_compose_v2:
+    project_src: /opt/docker/registry
+    state: present

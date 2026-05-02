@@ -1,5 +1,6 @@
 ---
 - import_playbook: setup_infra.yml
+- import_playbook: setup_registry.yml
 - import_playbook: setup_database.yml
 - import_playbook: setup_redis.yml
 - import_playbook: setup_app.yml

@@ -1,0 +1,9 @@
+---
+- name: Deploy Docker Registry
+  hosts: registry_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - role: registry
+      tags: [registry]

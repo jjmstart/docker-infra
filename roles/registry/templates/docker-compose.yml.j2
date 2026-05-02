@@ -1,0 +1,31 @@
+services:
+  registry:
+    image: {{ registry_image_tag }}
+    container_name: registry
+    restart: unless-stopped
+
+    ports:
+      - "{{ ansible_host }}:{{ registry_port }}:5000"
+
+    volumes:
+      - /opt/docker/registry/data:/var/lib/registry
+      - /opt/docker/registry/auth:/auth:ro
+      - /opt/docker/registry/config.yml:/etc/docker/registry/config.yml:ro
+
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+
+    networks:
+      - {{ docker_network_name }}
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  {{ docker_network_name }}:
+    external: true
