@@ -71,3 +71,12 @@ alert_memory_available_percent_warning: 10
 alert_cpu_usage_percent_warning: 85
 alert_mysql_realtime_replica_lag_seconds_warning: 60
 alert_mysql_delay_replica_lag_seconds_warning: 3900
+
+# ── 私有镜像仓库 ──────────────────────────────────────────────────────────────
+registry_host: "100.118.69.78:5000"
+registry_port: 5000
+registry_image_tag: "registry:2"
+
+# ── 应用镜像版本 ──────────────────────────────────────────────────────────────
+ruoyi_image_name: "ruoyi"
+ruoyi_image_tag: "latest"
