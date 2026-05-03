@@ -59,7 +59,7 @@ for t in to_delete:
 
 with open('tags_to_delete.txt', 'w') as f:
     if to_delete:
-        f.write('\n'.join(to_delete) + '\n')
+        f.write('\\n'.join(to_delete) + '\\n')
 PYEOF
 
             echo ""
