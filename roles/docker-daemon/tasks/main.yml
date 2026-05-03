@@ -1,4 +1,37 @@
 ---
+- name: Remove outdated python3-docker apt package
+  ansible.builtin.apt:
+    name: python3-docker
+    state: absent
+
+- name: Ensure python3-pip is installed
+  ansible.builtin.apt:
+    name: python3-pip
+    state: present
+    update_cache: false
+
+- name: Configure pip mirror
+  ansible.builtin.copy:
+    dest: /etc/pip.conf
+    mode: "0644"
+    content: |
+      [global]
+      index-url = https://mirrors.aliyun.com/pypi/simple/
+      trusted-host = mirrors.aliyun.com
+
+- name: Remove root user-level pip config with stale mirror
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /root/.pip/pip.conf
+    - /root/.config/pip/pip.conf
+
+- name: Install Python Docker SDK via pip
+  ansible.builtin.pip:
+    name: docker
+    state: latest
+
 - name: Ensure /etc/docker directory exists
   ansible.builtin.file:
     path: /etc/docker
