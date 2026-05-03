@@ -120,10 +120,17 @@ PYEOF
           docker exec registry du -sh /var/lib/registry || echo "(du 不可用，跳过)"
 
           echo ""
-          echo "=== 执行 registry garbage-collect --delete-untagged ==="
+          echo "=== 执行 registry garbage-collect（不带 --delete-untagged）==="
+          # 注意：绝对不加 --delete-untagged。
+          # BuildKit/OCI 推送会生成 image index（多 manifest 容器），index 下的
+          # child manifest（平台 manifest + in-toto attestation）没有直接 tag，
+          # --delete-untagged 会把它们当孤儿删掉，连带 layer blob 一起 GC，
+          # 导致 index tag 虽在但镜像彻底损坏。
+          # 本 Pipeline 依赖 Delete Old Manifests 阶段通过 DELETE API 软删除
+          # 旧 tag 的 manifest，随后裸 garbage-collect 就能正确回收被软删除
+          # 的 manifest 引用的 blob。
           docker exec registry \
-            registry garbage-collect /etc/docker/registry/config.yml \
-            --delete-untagged
+            registry garbage-collect /etc/docker/registry/config.yml
 
           echo ""
           echo "=== GC 后 Registry 数据目录占用 ==="
