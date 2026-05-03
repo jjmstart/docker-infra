@@ -9,7 +9,7 @@
   "log-opts": {
     "max-size": "10m",
     "max-file": "3"
-  }{% if inventory_hostname in groups.get('app_nodes', []) %},
+  }{% if inventory_hostname in groups.get('app_nodes', []) or inventory_hostname in groups.get('registry_nodes', []) %},
   "insecure-registries": ["{{ registry_host }}"]{% endif %}{% if docker_dns is defined %},
   "dns": {{ docker_dns | to_json }}{% endif %}
 }
