@@ -36,7 +36,7 @@ pipeline {
           file(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PASS_FILE')
         ]) {
           sh '''
-            set -eu
+            set -e
             ANSIBLE_PRIVATE_KEY_FILE="$ANSIBLE_KEY" \
             ansible-playbook playbooks/site.yml \
               -i inventory/hosts.yml \
@@ -61,7 +61,7 @@ pipeline {
           file(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PASS_FILE')
         ]) {
           sh '''
-            set -eu
+            set -e
             ANSIBLE_PRIVATE_KEY_FILE="$ANSIBLE_KEY" \
             ansible-playbook playbooks/site.yml \
               -i inventory/hosts.yml \
@@ -109,7 +109,7 @@ else:
     success {
       withCredentials([string(credentialsId: 'feishu-webhook-url', variable: 'FEISHU_URL')]) {
         sh '''
-          set -eu
+          set -e
           curl -sf -X POST "$FEISHU_URL" \
             -H "Content-Type: application/json" \
             -d "{
@@ -124,7 +124,7 @@ else:
     failure {
       withCredentials([string(credentialsId: 'feishu-webhook-url', variable: 'FEISHU_URL')]) {
         sh '''
-          set -eu
+          set -e
           curl -sf -X POST "$FEISHU_URL" \
             -H "Content-Type: application/json" \
             -d "{
