@@ -109,30 +109,36 @@ else:
     success {
       withCredentials([string(credentialsId: 'feishu-webhook-url', variable: 'FEISHU_URL')]) {
         sh '''
-          set -e
-          curl -sf -X POST "$FEISHU_URL" \
+          set -eu
+          cat > feishu-payload.json <<EOF
+{
+  "msg_type": "text",
+  "content": {
+    "text": "✅ [docker-infra] 部署完成：ruoyi:${IMAGE_TAG:-latest} 已上线，Smoke Test 通过。Job #${BUILD_NUMBER}"
+  }
+}
+EOF
+          curl -sS -f -X POST "$FEISHU_URL" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"msg_type\": \"text\",
-              \"content\": {
-                \"text\": \"✅ [docker-infra] 部署完成：ruoyi:${IMAGE_TAG} 已上线，Smoke Test 通过。Job #${BUILD_NUMBER}\"
-              }
-            }"
+            --data-binary @feishu-payload.json
         '''
       }
     }
     failure {
       withCredentials([string(credentialsId: 'feishu-webhook-url', variable: 'FEISHU_URL')]) {
         sh '''
-          set -e
-          curl -sf -X POST "$FEISHU_URL" \
+          set -eu
+          cat > feishu-payload.json <<EOF
+{
+  "msg_type": "text",
+  "content": {
+    "text": "❌ [docker-infra] 部署失败：Job #${BUILD_NUMBER}，版本 ${IMAGE_TAG:-latest}，请查看 Jenkins。"
+  }
+}
+EOF
+          curl -sS -f -X POST "$FEISHU_URL" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"msg_type\": \"text\",
-              \"content\": {
-                \"text\": \"❌ [docker-infra] 部署失败：Job #${BUILD_NUMBER}，版本 ${IMAGE_TAG}，请查看 Jenkins。\"
-              }
-            }"
+            --data-binary @feishu-payload.json
         '''
       }
     }
