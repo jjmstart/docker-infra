@@ -1,13 +1,15 @@
 {
-  "registry-mirrors": [
+  "registry-mirrors": {{ docker_registry_mirrors | default([
     "https://docker.m.daocloud.io",
     "https://dockerhub.icu",
     "https://docker.1panel.live"
-  ],
+  ]) | to_json }},
   "live-restore": true,
   "log-driver": "json-file",
   "log-opts": {
     "max-size": "10m",
     "max-file": "3"
-  }
+  }{% if inventory_hostname in groups.get('app_nodes', []) %},
+  "insecure-registries": ["{{ registry_host }}"]{% endif %}{% if docker_dns is defined %},
+  "dns": {{ docker_dns | to_json }}{% endif %}
 }
