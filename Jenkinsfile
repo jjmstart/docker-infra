@@ -42,7 +42,7 @@ pipeline {
               -i inventory/hosts.yml \
               -u "$ANSIBLE_USER" \
               --vault-password-file "$VAULT_PASS_FILE" \
-              --extra-vars "ruoyi_image_tag=${IMAGE_TAG:latest}" \
+              --extra-vars "ruoyi_image_tag=${IMAGE_TAG:-latest}" \
               --check --diff
           '''
         }
@@ -67,7 +67,7 @@ pipeline {
               -i inventory/hosts.yml \
               -u "$ANSIBLE_USER" \
               --vault-password-file "$VAULT_PASS_FILE" \
-              --extra-vars "ruoyi_image_tag=${IMAGE_TAG:latest}"
+              --extra-vars "ruoyi_image_tag=${IMAGE_TAG:-latest}"
           '''
         }
       }
