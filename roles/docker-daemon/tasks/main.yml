@@ -31,6 +31,7 @@
   ansible.builtin.pip:
     name: docker
     state: latest
+    extra_args: "{{ '--break-system-packages' if ansible_python_version is version('3.11', '>=') else '' }}"
 
 - name: Ensure /etc/docker directory exists
   ansible.builtin.file:
