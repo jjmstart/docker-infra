@@ -1,0 +1,179 @@
+pipeline {
+  agent any
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+  triggers {
+    // 每周日凌晨 2:00 自动触发
+    cron('0 2 * * 0')
+  }
+  environment {
+    REGISTRY_HOST = '100.118.69.78:5000'
+    IMAGE_NAME    = 'ruoyi'
+    KEEP_TAGS     = '10'
+  }
+  stages {
+    stage('Query Tags') {
+      steps {
+        withCredentials([
+          usernamePassword(
+            credentialsId: 'registry-credentials',
+            usernameVariable: 'REGISTRY_USER',
+            passwordVariable: 'REGISTRY_PASS'
+          )
+        ]) {
+          sh '''
+            set -eu
+            echo "=== 查询 Registry 中全部 tag ==="
+            curl -sf -u "${REGISTRY_USER}:${REGISTRY_PASS}" \
+              http://${REGISTRY_HOST}/v2/${IMAGE_NAME}/tags/list > tags.json
+            echo "Registry 原始响应："
+            cat tags.json
+            echo ""
+
+            python3 - <<'PYEOF'
+import json, os
+with open('tags.json') as f:
+    data = json.load(f)
+tags = data.get('tags') or []
+keep = int(os.environ['KEEP_TAGS'])
+
+# 过滤出 {BUILD_NUMBER}-{SHA} 格式的版本 tag，按 BUILD_NUMBER 升序
+versioned = sorted(
+    [t for t in tags if '-' in t and t.split('-', 1)[0].isdigit()],
+    key=lambda t: int(t.split('-', 1)[0])
+)
+non_versioned = [t for t in tags if t not in versioned]
+
+print("版本 tag（按 BUILD_NUMBER 升序，共 %d 个）：" % len(versioned))
+for t in versioned:
+    print("  " + t)
+print("非版本 tag（不参与 GC，共 %d 个）：%s" % (len(non_versioned), non_versioned))
+
+to_delete = versioned[:-keep] if len(versioned) > keep else []
+print("")
+print("KEEP_TAGS=%d，待删除 tag（共 %d 个）：" % (keep, len(to_delete)))
+for t in to_delete:
+    print("  " + t)
+
+with open('tags_to_delete.txt', 'w') as f:
+    if to_delete:
+        f.write('\n'.join(to_delete) + '\n')
+PYEOF
+
+            echo ""
+            echo "=== tags_to_delete.txt 内容 ==="
+            if [ -s tags_to_delete.txt ]; then
+              cat tags_to_delete.txt
+            else
+              echo "(空，无需删除)"
+            fi
+          '''
+        }
+      }
+    }
+    stage('Delete Old Manifests') {
+      steps {
+        withCredentials([
+          usernamePassword(
+            credentialsId: 'registry-credentials',
+            usernameVariable: 'REGISTRY_USER',
+            passwordVariable: 'REGISTRY_PASS'
+          )
+        ]) {
+          sh '''
+            set -eu
+            if [ ! -s tags_to_delete.txt ]; then
+              echo "没有需要软删除的 tag，跳过本阶段。"
+              exit 0
+            fi
+            echo "=== 开始软删除 manifest ==="
+            while IFS= read -r tag; do
+              [ -z "$tag" ] && continue
+              echo "[${tag}] 获取 digest..."
+              digest=$(curl -sf -u "${REGISTRY_USER}:${REGISTRY_PASS}" \
+                -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+                -I "http://${REGISTRY_HOST}/v2/${IMAGE_NAME}/manifests/${tag}" \
+                | grep -i '^Docker-Content-Digest:' \
+                | tr -d '\r' \
+                | awk '{print $2}')
+              if [ -z "${digest:-}" ]; then
+                echo "[${tag}] 获取 digest 失败，跳过"
+                continue
+              fi
+              echo "[${tag}] digest=${digest}"
+              curl -sf -u "${REGISTRY_USER}:${REGISTRY_PASS}" \
+                -X DELETE "http://${REGISTRY_HOST}/v2/${IMAGE_NAME}/manifests/${digest}"
+              echo "[${tag}] 已软删除"
+            done < tags_to_delete.txt
+            echo "=== 软删除阶段完成 ==="
+          '''
+        }
+      }
+    }
+    stage('Garbage Collect') {
+      steps {
+        sh '''
+          set -eu
+          echo "=== GC 前 Registry 数据目录占用 ==="
+          docker exec registry du -sh /var/lib/registry || echo "(du 不可用，跳过)"
+
+          echo ""
+          echo "=== 执行 registry garbage-collect --delete-untagged ==="
+          docker exec registry \
+            registry garbage-collect /etc/docker/registry/config.yml \
+            --delete-untagged
+
+          echo ""
+          echo "=== GC 后 Registry 数据目录占用 ==="
+          docker exec registry du -sh /var/lib/registry || echo "(du 不可用，跳过)"
+        '''
+      }
+    }
+  }
+  post {
+    success {
+      withCredentials([string(credentialsId: 'feishu-webhook-url', variable: 'FEISHU_URL')]) {
+        sh '''
+          set -eu
+          deleted_count=0
+          if [ -s tags_to_delete.txt ]; then
+            deleted_count=$(wc -l < tags_to_delete.txt | tr -d ' ')
+          fi
+          disk_usage=$(docker exec registry du -sh /var/lib/registry 2>/dev/null | awk '{print $1}' || echo unknown)
+
+          cat > feishu-payload.json <<EOF
+{
+  "msg_type": "text",
+  "content": {
+    "text": "✅ [docker-infra] Registry GC 完成：清理 ${deleted_count} 个旧 tag，当前数据目录占用 ${disk_usage}。Job #${BUILD_NUMBER}"
+  }
+}
+EOF
+          curl -sS -f -X POST "$FEISHU_URL" \
+            -H "Content-Type: application/json" \
+            --data-binary @feishu-payload.json
+        '''
+      }
+    }
+    failure {
+      withCredentials([string(credentialsId: 'feishu-webhook-url', variable: 'FEISHU_URL')]) {
+        sh '''
+          set -eu
+          cat > feishu-payload.json <<EOF
+{
+  "msg_type": "text",
+  "content": {
+    "text": "❌ [docker-infra] Registry GC 失败：Job #${BUILD_NUMBER}，请查看 Jenkins。"
+  }
+}
+EOF
+          curl -sS -f -X POST "$FEISHU_URL" \
+            -H "Content-Type: application/json" \
+            --data-binary @feishu-payload.json
+        '''
+      }
+    }
+  }
+}
