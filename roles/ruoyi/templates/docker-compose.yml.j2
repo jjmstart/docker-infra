@@ -1,6 +1,6 @@
 services:
   {{ ruoyi_instance }}:
-    image: ruoyi-jenkins-docker:latest
+    image: {{ registry_host }}/{{ ruoyi_image_name }}:{{ ruoyi_image_tag }}
     container_name: {{ ruoyi_instance }}
     restart: unless-stopped
 

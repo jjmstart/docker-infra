@@ -5,6 +5,23 @@
     state: directory
     mode: "0755"
 
+- name: Log in to private registry
+  ansible.builtin.shell: |
+    echo "{{ registry_auth_password }}" | \
+    docker login http://{{ registry_host }} \
+      -u "{{ registry_auth_username }}" --password-stdin
+  no_log: true
+  when: not ansible_check_mode
+
+- name: Pull ruoyi image from registry
+  ansible.builtin.shell: |
+    docker pull {{ registry_host }}/{{ ruoyi_image_name }}:{{ ruoyi_image_tag }}
+  when: not ansible_check_mode
+  register: docker_pull_result
+  changed_when: >
+    'Pull complete' in docker_pull_result.stdout or
+    'Downloaded newer image' in docker_pull_result.stdout
+
 - name: Render Ruoyi env file
   ansible.builtin.template:
     src: .env.j2
