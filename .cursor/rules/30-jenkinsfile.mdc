@@ -1,0 +1,117 @@
+---
+description: Jenkinsfile 编写规范，固化 V1.6 踩坑（Groovy 转义、shell 兼容性、heredoc、credentials）
+globs: Jenkinsfile, Jenkinsfile.*, **/Jenkinsfile, **/Jenkinsfile.*
+alwaysApply: false
+---
+
+# Jenkinsfile 规范
+
+## Shell 兼容性
+
+Jenkins `sh` 步骤默认 `/bin/sh`，多数发行版指向 `dash` 而非 bash。**禁用** bash-only 语法：
+
+| 写法 | 是否允许 | 备注 |
+|------|---------|------|
+| `${VAR:-default}` | ✅ | 注意 `:-` 中间不能漏掉 `-` |
+| `${VAR:default}` | ❌ | 非法 POSIX 语法，触发 `Bad substitution` |
+| `${VAR:=default}` | ❌ | bash-only |
+| `[[ ... ]]` | ❌ | 改用 `[ ... ]` |
+| `<<<` here-string | ❌ | 改用 heredoc |
+
+需要 bash 时显式 `sh '#!/bin/bash\n...'`。
+
+## `set -e` 而非 `set -eu`
+
+webhook 触发未填参数时 `set -u` 会直接退出，触发难以排查的失败：
+
+```bash
+# ❌ BAD
+set -eu
+docker pull ruoyi:${IMAGE_TAG}    # webhook 首次触发时 IMAGE_TAG 未定义直接退出
+
+# ✅ GOOD
+set -e
+docker pull ruoyi:${IMAGE_TAG:-latest}
+```
+
+凡是参数化 Job，所有 `${VAR}` 一律写 `${VAR:-fallback}`。
+
+## Groovy 三单引号转义陷阱
+
+`sh '''...'''` 不做 `${...}` 插值，但**仍处理 Java 风格反斜杠转义**：`\n` `\t` `\r` `\"` `\\` `\NNN` `\uXXXX` 全部被吃。
+
+规则：凡要让 Groovy 之下的 shell / Python / sed / awk 看到反斜杠的位置，**一律写 `\\`**，只有这样才能传出一个真正的反斜杠。
+
+```groovy
+// ❌ BAD - Groovy 把 \n 转成真换行，撑断 Python 字符串字面量
+sh '''
+python3 -c "f.write('\n'.join(items))"
+'''
+
+// ✅ GOOD - 写 \\n 让 Python 看到 \n
+sh '''
+python3 -c "f.write('\\n'.join(items))"
+'''
+```
+
+## 多行字符串 / JSON 一律 heredoc
+
+**禁止**在 `sh '''...'''` 里用 `\"` 内联拼 JSON（Groovy 转义层会把 `\"` 吃掉，破坏 shell 引号结构，导致 `curl exit 3 URL malformed`）。
+
+```groovy
+// ❌ BAD
+sh '''
+curl -X POST "$URL" -d "{ \"msg_type\": \"text\", \"content\": ... }"
+'''
+
+// ✅ GOOD - heredoc 写文件 + --data-binary @file
+sh '''
+cat > feishu-payload.json <<EOF
+{
+  "msg_type": "text",
+  "content": { "text": "✅ 部署完成 #${BUILD_NUMBER}" }
+}
+EOF
+curl -sS -f -X POST "$URL" \
+  -H "Content-Type: application/json" \
+  --data-binary @feishu-payload.json
+'''
+```
+
+嵌入 Python 用 `<<'PYEOF'`（带引号 delimiter，shell 也不插值）。
+
+## environment 块只放静态常量
+
+动态计算的变量（`GIT_SHORT_SHA` / `IMAGE_TAG` 等）只在 `script {}` 里用 `env.XXX = ...` 赋值，**禁止**在 `environment {}` 预声明空字符串占位（声明会"锁定"环境变量为空字符串，后续动态赋值不生效）。
+
+## 凭据管理
+
+- Registry 用户名密码、SSH key、webhook URL、ansible-vault 密码 → 一律 Jenkins Credentials
+- Jenkinsfile 内**禁止**出现明文凭据
+- `withCredentials` 的 `****` 遮蔽**不**等于变量有值；调试时打印 `${#VAR}` 长度而不是观察 `****`
+
+## `when { branch }` 适用范围
+
+仅 Multibranch Pipeline 有效。本项目使用普通 Pipeline Job，已在 SCM 层限定 `*/main` 分支，stage 级 `when { branch 'main' }` **禁止使用**（行为不稳定，首次 webhook 可能跳过）。
+
+## Smoke Test 复用监控基础设施
+
+**禁止**直接从 Jenkins curl 业务节点判定健康（无法区分 Jenkins↔节点网络问题与业务故障）。
+
+**必须**调用 Prometheus Query API 查 blackbox-exporter 探测结果：
+
+```bash
+curl -sf "http://100.117.7.75:9090/api/v1/query" \
+  --data-urlencode 'query=min(probe_success{service="ruoyi"})' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['result'][0]['value'][1])"
+```
+
+## 飞书通知统一模式
+
+post `success` / `failure` 块 → heredoc 写 `feishu-payload.json` → `curl --data-binary @feishu-payload.json`。Webhook URL 必须走 `withCredentials([string(credentialsId: 'feishu-webhook-url-jenkins-notify', ...)])`。
+
+## 排查 `curl exit 3 (URL malformed)` 标准三步
+
+1. 独立 Job 跑 `printf "%s" "$SECRET" | wc -c` 和 `od -c | head` 看长度/字节
+2. `-sf` 改 `-v` 跑 curl 看是否真建连
+3. 若都正常，回 Jenkinsfile 看 `set -x` trace 中 `-d` 参数实际结构——JSON 键值缺引号即是 Groovy 转义层被吃的信号

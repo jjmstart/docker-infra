@@ -1,0 +1,77 @@
+---
+description: Ansible role / playbook / inventory / vault 编写规范，含 V1.5/V1.6 踩坑沉淀
+globs: roles/**, playbooks/**, inventory/**, vault/**, ansible.cfg
+alwaysApply: false
+---
+
+# Ansible 规范
+
+## 幂等性硬约束
+
+任何新 task 重复执行必须 `changed=0 failed=0`：
+
+- 配置文件渲染优先 `ansible.builtin.template`，`copy` 仅用于不需变量的固定文件
+- `ansible.builtin.shell` / `command` 必须配 `creates:` / `removes:` / `changed_when:` 之一，否则永远报 `changed`
+- 不能安全 dry-run 的 task（如 `docker pull` 真实拉取、`docker login`）显式加 `when: not ansible_check_mode`
+
+## 变量分层
+
+| 内容 | 位置 |
+|------|------|
+| 全局非敏感（端口、镜像名、IP 别名） | `inventory/group_vars/all.yml` |
+| 主机差异（如各节点 `registry_mirrors`、`docker_dns`） | `inventory/hosts.yml` 主机变量 |
+| 敏感（密码、token、auth） | `vault/secrets.yml`（**ansible-vault 加密**）|
+
+**禁止**在 role 内 `vars/` 写敏感值；**禁止**普通 yaml 出现明文凭据。
+
+## 多云节点配置合并写入
+
+gz-02（腾讯云镜像）、gz-03（火山引擎镜像 + DNS）、bj-01 等节点的 `daemon.json` / `pip.conf` 等基础配置**各不相同**：
+
+- 模板必须**合并**写入，不全量覆盖
+- 各节点原有 `registry-mirrors` / `dns` 通过主机变量保留
+- 新追加配置（如 `insecure-registries`）通过 Jinja 条件判断追加
+
+```yaml
+# ❌ BAD - 全量覆盖丢失节点原有配置
+- name: write daemon.json
+  copy:
+    content: '{"insecure-registries":["100.118.69.78:5000"]}'
+
+# ✅ GOOD - 模板合并保留主机变量
+- name: write daemon.json
+  template:
+    src: daemon.json.j2  # 内部用 host_var docker_registry_mirrors / docker_dns 渲染
+```
+
+## 跨 Python 版本 pip 处理
+
+PEP 668 节点（Debian 12 / Ubuntu 24.04，Python ≥ 3.11）需要 `--break-system-packages`，旧节点不识别该参数：
+
+```yaml
+extra_args: "{{ '--break-system-packages' if ansible_python_version is version('3.11', '>=') else '' }}"
+```
+
+`/etc/pip.conf` 写入 + 删除用户级 `~/.pip/pip.conf`、`~/.config/pip/pip.conf` 一并由 `roles/docker-daemon` 管理（基础设施前置项），**不分散到业务 role**。
+
+## community.docker 模块边界
+
+V1.6 已确认踩坑——以下场景**禁用** `community.docker.*`，改用 `ansible.builtin.shell` 直调 docker CLI：
+
+- `docker_login`（check mode 下真实发起认证；SDK 7.x 兼容性问题）
+- `docker_image` source=pull（同样 SDK 兼容性问题）
+
+`community.docker.docker_compose_v2` 仍可使用，check mode 表现良好。
+
+## `no_log: true` 调试纪律
+
+调试敏感 task 时：改 `no_log: false` → 复现 → 定位根因 → **必须改回 `no_log: true`** → 提交。"改回" 作为 commit 前的 checklist 项。
+
+## 跨节点访问角色梳理
+
+设计阶段先列清"**谁需要访问 X 服务**"而不仅是"谁跑业务容器"。例如 Registry 宿主机自己也需要 `insecure-registries` 配置，不能只配 `app_nodes` 漏掉 `registry_nodes`。
+
+## 排查 community.docker 失败两步法
+
+1. 先 `ansible <host> -m shell -a 'python3 -c "import docker; print(docker.from_env().version())"'` 验证 SDK 独立连通 daemon
+2. 第一步通过后再看 collection 报错；不要把 SDK / daemon / collection 三类问题混在一起排查

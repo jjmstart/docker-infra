@@ -1,0 +1,94 @@
+---
+description: 私有 Registry 与 BuildKit 安全约束，固化 V1.6 GC 误删镜像灾难（141.7M→296K）
+globs: Jenkinsfile.registry-gc, roles/registry/**, roles/ruoyi/**, **/Dockerfile, **/Dockerfile.*
+alwaysApply: false
+---
+
+# Registry & BuildKit 规范
+
+## GC 安全策略：禁止 `--delete-untagged`
+
+V1.6 已确认：BuildKit / OCI 场景下 `registry garbage-collect --delete-untagged` 是**危险命令**。
+
+根因：BuildKit `docker build` 推送会生成 OCI image index（含多个 child manifest：平台 manifest + SLSA in-toto attestation），tag 直接指向 image index，child manifest 没有独立 tag。`--delete-untagged` 只懂 tag→manifest 一层引用，把 child manifest 当孤儿删除，连带 layer blob 被 GC，**镜像永久损坏**（V1.6 实测从 141.7M 暴跌到 296K）。
+
+```bash
+# ❌ BAD
+registry garbage-collect --delete-untagged /etc/docker/registry/config.yml
+
+# ✅ GOOD - 裸 garbage-collect
+registry garbage-collect /etc/docker/registry/config.yml
+```
+
+## 安全 GC 两段式
+
+只要 CI 用 BuildKit（`DOCKER_BUILDKIT=1` 或 `docker buildx`）推送，GC Pipeline **必须**两段式：
+
+1. **主动软删除**：通过 `DELETE /v2/<name>/manifests/<digest>` 删除超出保留数量的旧 tag
+2. **裸 GC 回收 blob**：`docker exec registry registry garbage-collect /etc/docker/registry/config.yml`
+
+代价：被软删除 manifest 下的 child manifest 会成为"命名孤儿"（几百字节/个），数量可控可忽略。
+
+## 镜像 Tag 命名
+
+应用镜像**永远**双标识 + 同步 latest：
+
+```
+ruoyi:{BUILD_NUMBER}-{GIT_SHORT_SHA}    # 主 tag，如 11-f0b459d
+ruoyi:latest                             # 同步推送，作为兜底默认值
+```
+
+- `BUILD_NUMBER` 单调递增，可直接判断版本新旧
+- `GIT_SHORT_SHA` 可追溯到具体 commit
+- **禁止**只推 `latest`（无法回滚、无法追溯）
+
+## Registry 访问角色
+
+凡需要 push 或 pull 私有 Registry 的节点都需要 `insecure-registries: ["100.118.69.78:5000"]` 配置，**包括 Registry 宿主机自身（bj-01）**。
+
+设计时按"谁访问 Registry"列清单（CI push、节点 pull、Registry 宿主验证）而不仅是"谁跑业务容器"。
+
+## Registry 凭据
+
+- Basic Auth 用户名/密码 → `vault/secrets.yml` 加密
+- 节点首次 pull 前 Ansible 自动 `docker login`（shell 模块）
+- bj-01 本地手工 push/pull 前必须**手工** `docker login`（Ansible 不覆盖手工场景）
+
+## Jenkins 容器边界
+
+Jenkins 是容器化运行（`jenkins-ansible:latest`），文件系统视图与宿主机/其他容器**完全隔离**。仅挂载：`/var/jenkins_home`、docker socket、`/usr/bin/docker`、ruoyi workspace。
+
+读非挂载路径（如 Registry 数据目录 `/opt/docker/registry/data/`）只能：
+
+```bash
+# ✅ 通过 docker exec 进入目标容器
+docker exec registry du -sh /var/lib/registry
+
+# ✅ 临时工具容器
+docker run --rm -v /opt/docker/registry/data:/data alpine du -sh /data
+
+# ❌ 禁止 - Jenkins 容器看不到宿主机这个路径
+du -sh /opt/docker/registry/data/
+```
+
+## Dockerfile BuildKit 缓存
+
+Maven / npm / pip 等依赖缓存使用 BuildKit cache mount，不挂载宿主机目录：
+
+```dockerfile
+# syntax=docker/dockerfile:1.4
+FROM maven:3.8.6-eclipse-temurin-17 AS builder
+WORKDIR /app
+COPY . .
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn clean package -Dmaven.test.skip=true
+```
+
+构建时确保 `DOCKER_BUILDKIT=1`。BuildKit 缓存自动持久化在 Docker 缓存目录，无需手工维护。
+
+## 镜像损坏恢复
+
+Registry 中某 tag pull 报 `failed to copy: ... not found` 时：
+
+- **不**试图人工修复 manifest / blob
+- **直接**触发 ruoyi CI 新构建推送，覆盖 `latest` 与新 BUILD_NUMBER tag 即可恢复

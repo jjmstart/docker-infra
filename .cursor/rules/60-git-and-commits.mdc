@@ -1,0 +1,81 @@
+---
+description: Git 提交规范、tag 规范、敏感信息扫描、不允许的破坏性操作
+alwaysApply: true
+---
+
+# Git 与提交规范
+
+## Commit 信息格式（Conventional Commits）
+
+```
+<type>(<scope>): <subject>
+```
+
+| type | 用途 |
+|------|------|
+| `feat` | 新增功能 / 新 role / 新 Pipeline stage |
+| `fix` | 修复 bug |
+| `docs` | 仅文档变更（含 proposal / runbook / architecture / retrospective）|
+| `refactor` | 重构（不改外部行为）|
+| `chore` | 构建过程、辅助工具变更 |
+| `ci` | Jenkins / GitHub workflow 变更 |
+| `style` | 格式化、空白、不影响代码运行 |
+
+**scope** 用模块名：`registry`、`ruoyi`、`jenkins`、`monitor`、`alertmanager`、`docker-daemon`、`pipeline`、`docs` 等。
+
+**subject** 使用**英文**，祈使句，首字母小写，结尾不加句号，长度 ≤ 72 字符。
+
+```
+✅ feat(registry): add docker registry v2 with basic auth
+✅ fix(jenkins): replace inline json with heredoc for feishu webhook
+✅ docs(retrospective): add v1.6 lessons on buildkit gc
+❌ Update file
+❌ 修复了 Jenkinsfile 的 bug
+❌ feat(registry): Added Docker Registry v2 with Basic Auth.
+```
+
+## 原子化提交
+
+一次提交只做一件事。典型组合：
+
+- Ansible role 变更 + 对应 runbook 步骤更新 → **分开两次提交**（`feat(xxx):` + `docs(runbook):`）
+- 草案 / runbook / 架构快照 / retrospective → **分开提交**，按文档撰写规范的 8 步流程顺序推送
+- 同一类问题修多个文件可合并；**禁止**把不相关变更混进同一 commit
+
+## Tag 规范
+
+- 架构发布 tag：`arch-vX.Y`（如 `arch-v1.5`、`arch-v1.6`），与 `Docs/architecture/vX.Y.md` 严格对应
+- 打 tag 前检查：① 全链路验证通过 ② `architecture/README.md` 与 `Docs/README.md` 已更新 ③ 无敏感信息泄漏
+- **禁止**用 `arch-` 前缀给非架构发布打 tag
+
+## 提交前敏感信息自检
+
+```bash
+git diff --cached | grep -iE "password|token|secret|webhook|api[_-]?key" | grep -v "vault\|credentials\|placeholder\|example"
+```
+
+发现疑似明文凭据立即停下，迁移到 `vault/secrets.yml`（ansible-vault 加密）或 Jenkins Credentials。
+
+vault 文件提交前确认是 `$ANSIBLE_VAULT;1.1;AES256` 开头的加密状态，不是明文。
+
+## 破坏性操作禁令
+
+- **禁止** `git push --force` 到 `main`
+- **禁止** `--no-verify` 跳过 hook
+- **禁止** `git commit --amend` 已 push 到远端的 commit
+- **禁止**重写 main 分支历史（rebase / reset --hard 后 force push）
+
+## 多步操作的提交节奏
+
+执行 `Docs/文档撰写规范.md` §1 的 8 步流程时，按以下节奏提交：
+
+1. proposal 草案 → `docs(proposal): draft vX.Z for <topic>`
+2. Ansible 变更 → 按模块拆分多个 `feat(xxx):`
+3. runbook → `docs(runbook): add vX.Y-to-vX.Z procedure`
+4. 部署验证后修复 → `fix(xxx):` 或 `chore:`
+5. architecture 快照 → `docs(architecture): snapshot vX.Z`
+6. retrospective → `docs(retrospective): vX.Z lessons learned`
+7. README 索引 → `docs: update indexes for vX.Z`
+8. 打 tag → `git tag arch-vX.Z` 并 push tag
+
+每个版本最终在 git log 上呈现一条清晰的"草案 → 实施 → 验证 → 复盘 → 发布"叙事链路，本身就是面试可讲的工程素养证据。

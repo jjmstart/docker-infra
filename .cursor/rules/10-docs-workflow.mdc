@@ -1,0 +1,59 @@
+---
+description: Docs 文档体系约束：四种文档定位、新版本 8 步流程、各文档必含章节、写作禁止项
+globs: Docs/**/*.md
+alwaysApply: false
+---
+
+# 文档体系规范
+
+详细规范见 `Docs/文档撰写规范.md`，本规则是高频强约束的精简版。
+
+## 四种文档严格分工（互不串话）
+
+| 文件夹 | 定位 | 触发时机 |
+|--------|------|----------|
+| `proposals/` | 集群**下一步准备怎么变** | 演进开始前讨论评审 |
+| `architecture/` | 集群**现在是什么样** | 状态变化时新增一版 |
+| `runbooks/` | 集群**怎么从 A 变成 B** | 执行演进时撰写 |
+| `retrospectives/` | 集群**演进过程中学到了什么** | 演进完成后复盘 |
+
+## 新版本 8 步流程（按顺序）
+
+1. 新建 `proposals/vX.Z-topic.md` 草案
+2. 新建/更新 Ansible 配置（`roles/`、`inventory/`、`playbooks/`）
+3. 新建 `runbooks/vX.Y-to-vX.Z.md`
+4. Jenkins / Ansible 部署验证
+5. 新建 `architecture/vX.Z.md` 快照
+6. 新建 `retrospectives/vX.Z-retrospective.md`
+7. 同步更新各 `README.md` 索引（含将上一版从"当前最新"改为"历史归档"）
+8. 打 git tag `arch-vX.Z`
+
+## 各文档必含章节
+
+**proposal**：设计目标 / 方案范围 / 影响范围 / 验收标准 / 待确认问题。
+
+**architecture**：文档说明 / Context Bootstrap（仓库根目录、节点互联、关键文件、核心技术决策表）/ 节点总览六列表 / 各节点服务详情 / 拓扑图（ASCII + mermaid）/ 网络互联五条链路 / 与上一版本差异。
+
+**runbook**：演进概述 / 前置条件 / 节点与文件速查 / 交互约定 / Phase 总览表 / 各 Phase 六要素（① 目标 ② 节点 ③ 命令 ④ 预期输出 ⑤ 验证方法 ⑥ 回滚方式）/ 验收标准。
+
+**retrospective**：一句话摘要 / 最终架构状态表（Phase / 完成内容 / 关键验证指标）/ Q&A 决策解释 / 踩坑记录四列表（坑点 / 根因 / 解决 / 规避）/ 操作心得 / 遗留问题。
+
+## 写作禁止项
+
+- 草案不冒充线上事实
+- 架构快照不写操作步骤、不写"演进方向"、不写踩坑
+- runbook 不写技术决策原因
+- retrospective 不堆原始命令清单
+- 任何文档不含明文密码、token、webhook secret
+- 不修改节点 IP / 配置 / 延迟等固定值（详见 `00-project-context.mdc`）
+
+## 命令规范（runbook 中）
+
+- `docker exec` + heredoc 必须用 `-i` 不加 `-t`（`-t` 与非交互冲突）
+- SQL heredoc 结束符用 `'EOF'`（带引号防变量展开）
+- 密码引用 `"${MYSQL_ROOT_PASSWORD}"`（从 `.env` 读取，不写真值）
+- 跨节点传输走 Tailscale IP，不走公网
+
+## README 索引同步
+
+新增草案/版本后必须更新：`Docs/README.md` + 对应子目录 `README.md`。architecture 索引把原"当前最新"行改为"历史归档"。

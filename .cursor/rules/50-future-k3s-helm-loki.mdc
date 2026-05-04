@@ -1,0 +1,87 @@
+---
+description: 未来 V1.8/V1.9/V1.10 引入 K3s / Helm / Loki / 可观测整合时的预约束（按需启用）
+globs: charts/**, k3s-manifests/**, **/promtail*, **/loki*, **/*.helm.yaml, **/values*.yaml
+alwaysApply: false
+---
+
+# K3s / Helm / Loki 规范（V1.8+ 启用）
+
+## 边界：哪些服务进 K3s
+
+**只承载无状态服务**（ruoyi-admin 等 Java/Web 后端）。
+
+**不**迁移到 K3s 的服务（继续 Compose 承载）：
+- MySQL 主从（gz-03 主、gz-02 实时从、bj-01 延迟从 3600s）
+- Redis 主从 + Sentinel
+- ProxySQL
+- 监控栈（Prometheus / Grafana / Alertmanager）
+- Nginx 网关
+
+理由：有状态服务在 K8s 上的运维复杂度远超初级岗要求，且现有 Compose 方案已成熟。
+
+## K3s Manifest 必含字段
+
+**Deployment**：
+- `replicas: ≥ 2`
+- `strategy.type: RollingUpdate`
+- `livenessProbe` + `readinessProbe`（HTTP GET，如若依的 `/actuator/health` 等效路径）
+- `envFrom` 引用 ConfigMap，敏感值 `secretKeyRef` 引用 Secret
+
+**Service**：优先 `ClusterIP` 配 Ingress；`NodePort` 仅用于联调
+
+**Ingress**：使用 K3s 内置 Traefik，hostname 指向已有域名
+
+**ConfigMap**：非敏感配置（端口、日志级别、ProxySQL 连接 `100.92.5.116:6033`）
+
+**Secret**：敏感值 base64 编码；**禁止**把真值提交到 Git，提交 placeholder + 单独说明加载方式
+
+## Helm Chart 结构
+
+```
+charts/<app>/
+├── Chart.yaml
+├── values.yaml          # 默认值 (dev)
+├── values-prod.yaml     # 生产覆盖
+└── templates/
+    ├── deployment.yaml
+    ├── service.yaml
+    ├── ingress.yaml
+    ├── configmap.yaml
+    └── secret.yaml
+```
+
+`values.yaml` 至少参数化：`image.repository` / `image.tag` / `replicaCount` / 数据库连接（ProxySQL host:port）/ Ingress hostname。
+
+## Helm 与 Jenkins 集成
+
+Deploy stage 改 `helm upgrade --install` 而非 `kubectl apply`：
+
+```bash
+helm upgrade --install ruoyi ./charts/ruoyi \
+  -f charts/ruoyi/values-prod.yaml \
+  --set image.tag=${IMAGE_TAG:-latest} \
+  --wait --timeout 5m
+```
+
+回滚命令：`helm rollback ruoyi <REVISION>`。
+
+## Loki label 设计
+
+**必含**：`node`（gz-01/02/03/bj-01）、`service`（容器名）、`env`（prod）。
+
+**禁止**作为 label：高基数字段（`user_id`、`request_id`、`session_id`、`trace_id`）——会导致 Loki 索引爆炸。这类字段放日志正文，用 LogQL 全文检索。
+
+## Promtail 采集源
+
+- Docker Compose 容器日志：`/var/lib/docker/containers/*/*.log`（json-file driver）
+- K3s Pod 日志：`/var/log/pods/`
+- 配置由 Ansible 管理，重复执行 `changed=0`
+
+## Prometheus 接入新服务（v2.0 整合）
+
+新增 exporter（Redis / ProxySQL / Nginx）必须**同时**：
+
+1. 在 `roles/monitor-stack/templates/prometheus.yml.j2` 加 scrape_config
+2. 在 `roles/monitor-stack/templates/rules/` 新增对应告警规则文件
+3. 阈值基于实际观测调优（grafana dashboard 至少观察一周），**禁止**直接写"经验值"
+4. Alertmanager `inhibit_rules` 检查是否需要追加（例如新组件 down 时是否会触发上层关联告警）
