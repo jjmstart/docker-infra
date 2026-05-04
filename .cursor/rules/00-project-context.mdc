@@ -13,11 +13,11 @@ alwaysApply: true
 
 ## 必读文档（每次开始新任务前先读）
 
-1. `Docs/用户画像.md` — 用户背景、求职定位、决策原则与红线
+1. `.cursor/rules/01-user-profile.mdc` — 用户背景、求职定位、决策原则与红线
 2. `Docs/architecture/` 目录下版本号最大的那份 — 当前线上架构事实
 3. `Docs/scheme/phase-1-architecture-upgrade.md` — 当前演进路线图
 
-涉及文档撰写时另读 `Docs/文档撰写规范.md`。
+涉及文档撰写时遵循 `.cursor/rules/10-docs-workflow.mdc`。
 
 ## 节点固定事实（严禁修改）
 

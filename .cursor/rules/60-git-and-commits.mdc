@@ -39,7 +39,7 @@ alwaysApply: true
 一次提交只做一件事。典型组合：
 
 - Ansible role 变更 + 对应 runbook 步骤更新 → **分开两次提交**（`feat(xxx):` + `docs(runbook):`）
-- 草案 / runbook / 架构快照 / retrospective → **分开提交**，按文档撰写规范的 8 步流程顺序推送
+- 草案 / runbook / 架构快照 / retrospective → **分开提交**，按 `.cursor/rules/10-docs-workflow.mdc` 的 9 步流程顺序推送
 - 同一类问题修多个文件可合并；**禁止**把不相关变更混进同一 commit
 
 ## Tag 规范
@@ -67,15 +67,16 @@ vault 文件提交前确认是 `$ANSIBLE_VAULT;1.1;AES256` 开头的加密状态
 
 ## 多步操作的提交节奏
 
-执行 `Docs/文档撰写规范.md` §1 的 8 步流程时，按以下节奏提交：
+执行 `.cursor/rules/10-docs-workflow.mdc` §1 的 9 步流程时，按以下节奏提交：
 
 1. proposal 草案 → `docs(proposal): draft vX.Z for <topic>`
 2. Ansible 变更 → 按模块拆分多个 `feat(xxx):`
 3. runbook → `docs(runbook): add vX.Y-to-vX.Z procedure`
 4. 部署验证后修复 → `fix(xxx):` 或 `chore:`
-5. architecture 快照 → `docs(architecture): snapshot vX.Z`
-6. retrospective → `docs(retrospective): vX.Z lessons learned`
-7. README 索引 → `docs: update indexes for vX.Z`
-8. 打 tag → `git tag arch-vX.Z` 并 push tag
+5. runbook 执行后校准 → `docs(runbook): align vX.Y-to-vX.Z with execution`
+6. architecture 快照 → `docs(architecture): snapshot vX.Z`
+7. retrospective → `docs(retrospective): vX.Z lessons learned`
+8. README 索引 → `docs: update indexes for vX.Z`
+9. 打 tag → `git tag arch-vX.Z` 并 push tag
 
 每个版本最终在 git log 上呈现一条清晰的"草案 → 实施 → 验证 → 复盘 → 发布"叙事链路，本身就是面试可讲的工程素养证据。

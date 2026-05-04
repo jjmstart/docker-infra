@@ -81,7 +81,7 @@
 
 ## 新增版本 / 文档撰写
 
-将 [文档撰写规范.md](文档撰写规范.md) 提供给 AI，即可让 AI 独立完成新版本所有文档的撰写，并知道需要同步更新哪些已有文件。
+新增架构版本时遵循 `.cursor/rules/10-docs-workflow.mdc`。该规则是文档撰写规范的唯一来源，AI 应依据它完成新版本所有文档的撰写，并同步更新相关索引文件。
 
 V1.4 之后，每次架构升级按 Git 发布流程管理：
 
@@ -89,10 +89,11 @@ V1.4 之后，每次架构升级按 Git 发布流程管理：
 2. 新建或更新 Ansible 配置：如 `roles/xxx/`、`inventory/`、`playbooks/`
 3. 新建升级手册：`Docs/runbooks/vX.Y-to-vX.Z.md`
 4. Jenkins / Ansible 部署验证通过
-5. 新建正式架构快照：`Docs/architecture/vX.Z.md`
-6. 新建复盘：`Docs/retrospectives/vX.Z-retrospective.md`
-7. 更新 README 索引
-8. 打 tag：`arch-vX.Z`
+5. 回查并修正 runbook 中与实际执行不一致的内容
+6. 新建正式架构快照：`Docs/architecture/vX.Z.md`
+7. 新建复盘：`Docs/retrospectives/vX.Z-retrospective.md`
+8. 更新 README 索引
+9. 打 tag：`arch-vX.Z`
 
 ---
 
