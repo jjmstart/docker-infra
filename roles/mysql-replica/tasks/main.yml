@@ -18,3 +18,44 @@
     dest: "{{ docker_root }}/backend/mysql/docker-compose.yml"
     mode: "0644"
   notify: restart mysql
+
+# ── 以下 4 个 task 追加到现有 3 个 task 之后 ──
+
+- name: Ensure MySQL replica compose stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_root }}/backend/mysql"
+    state: present
+    recreate: auto
+
+- name: Wait for MySQL to accept connections
+  ansible.builtin.shell: |
+    cd {{ docker_root }}/backend/mysql
+    set -a && . ./.env && set +a
+    for i in $(seq 1 30); do
+      docker exec -i mysql mysqladmin ping -uroot -p"${MYSQL_ROOT_PASSWORD}" --silent && exit 0
+      sleep 2
+    done
+    exit 1
+  changed_when: false
+  no_log: true
+
+- name: Read MySQL replica status
+  ansible.builtin.shell: |
+    cd {{ docker_root }}/backend/mysql
+    set -a && . ./.env && set +a
+    docker exec -i mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "SHOW REPLICA STATUS\G"
+  register: mysql_replica_status
+  changed_when: false
+  no_log: true
+
+- name: Start MySQL replica threads when stopped
+  ansible.builtin.shell: |
+    cd {{ docker_root }}/backend/mysql
+    set -a && . ./.env && set +a
+    docker exec -i mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" \
+      -e "START REPLICA;"
+  when: >
+    'Replica_IO_Running: No' in mysql_replica_status.stdout
+    or 'Replica_SQL_Running: No' in mysql_replica_status.stdout
+  changed_when: true
+  no_log: true
