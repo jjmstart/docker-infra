@@ -43,6 +43,8 @@
 |------|----------|------|
 | [proposals/README.md](proposals/README.md) | — | 架构设计草案索引 |
 | [proposals/v1.5-alerting.md](proposals/v1.5-alerting.md) | V1.5 | 告警系统设计草案（已落地，最终状态见 `architecture/v1.5.md`） |
+| [proposals/v1.6-pipeline.md](proposals/v1.6-pipeline.md) | V1.6 | 应用交付流水线设计草案（已落地，最终状态见 `architecture/v1.6.md`） |
+| [proposals/v1.7-backup.md](proposals/v1.7-backup.md) | V1.7 | 备份恢复最小闭环设计草案（讨论中） |
 
 ### architecture/
 
@@ -54,7 +56,8 @@
 | [architecture/v1.2.md](architecture/v1.2.md) | V1.2 | MySQL 一主两从 + ProxySQL 读写分离（历史归档） |
 | [architecture/v1.3.md](architecture/v1.3.md) | V1.3 | `/opt/docker` 纳入 Git + GitHub Private 管理（历史归档） |
 | [architecture/v1.4.md](architecture/v1.4.md) | V1.4 | Ansible + Jenkins CI/CD，git push 全自动下发配置（历史归档） |
-| [architecture/v1.5.md](architecture/v1.5.md) | V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警闭环（**当前最新**） |
+| [architecture/v1.5.md](architecture/v1.5.md) | V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警闭环（历史归档） |
+| [architecture/v1.6.md](architecture/v1.6.md) | V1.6 | 私有 Docker Registry + ruoyi CI 自动触发 + 参数化 CD + Smoke Test + Registry GC + 飞书双机器人（**当前最新**） |
 
 ### runbooks/
 
@@ -66,6 +69,7 @@
 | [runbooks/v1.2-to-v1.3.md](runbooks/v1.2-to-v1.3.md) | V1.2 → V1.3 | Git + GitHub 管理集群配置操作手册（Phase 6 未执行，已由 v1.4 取代） |
 | [runbooks/v1.3-to-v1.4.md](runbooks/v1.3-to-v1.4.md) | V1.3 → V1.4 | Ansible + Jenkins CI/CD 全自动配置管理操作手册（9 个 Phase） |
 | [runbooks/v1.4-to-v1.5.md](runbooks/v1.4-to-v1.5.md) | V1.4 → V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警系统操作手册（8 个 Phase） |
+| [runbooks/v1.5-to-v1.6.md](runbooks/v1.5-to-v1.6.md) | V1.5 → V1.6 | 私有 Registry + ruoyi CI/CD 全链路操作手册 |
 
 ### retrospectives/
 
@@ -76,6 +80,7 @@
 | [retrospectives/v1.2-retrospective.md](retrospectives/v1.2-retrospective.md) | V1.2 | MySQL 高可用升级复盘（含故障演练 RTO 实测） |
 | [retrospectives/v1.4-retrospective.md](retrospectives/v1.4-retrospective.md) | V1.4 | Ansible + Jenkins CI/CD 统一配置管理复盘 |
 | [retrospectives/v1.5-retrospective.md](retrospectives/v1.5-retrospective.md) | V1.5 | 告警系统闭环与故障演练复盘 |
+| [retrospectives/v1.6-retrospective.md](retrospectives/v1.6-retrospective.md) | V1.6 | 应用交付流水线全链路复盘 |
 
 ---
 
