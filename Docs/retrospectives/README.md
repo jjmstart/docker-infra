@@ -10,3 +10,4 @@
 | [v1.2-retrospective.md](v1.2-retrospective.md) | V1.2 | 2026 年 | MySQL 升级为一主两从 + 半同步 + GTID + ProxySQL 读写分离，故障演练 RTO 实测纯操作约 3 分钟 |
 | [v1.4-retrospective.md](v1.4-retrospective.md) | V1.4 | 2026 年 | Ansible + Jenkins CI/CD 统一配置管理复盘，完成 git push 自动下发全节点配置 |
 | [v1.5-retrospective.md](v1.5-retrospective.md) | V1.5 | 2026 年 | 告警闭环复盘：新增 Prometheus 规则、blackbox-exporter、Alertmanager 和飞书 webhook adapter，Phase 6-8 待补充 |
+| [v1.6-retrospective.md](v1.6-retrospective.md) | V1.6 | 2026 年 | 应用交付链路复盘：私有 Docker Registry、ruoyi CI 自动触发、参数化 CD Job、Smoke Test、飞书三类通知、Registry GC Pipeline；Phase 9 全链路验收通过，Phase 10（arch-v1.6 tag）待完成 |
