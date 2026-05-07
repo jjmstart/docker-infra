@@ -1,5 +1,5 @@
 ---
-description: docker-infra 项目稳定上下文：定位、节点事实、AI 协作边界、必读文档
+description: docker-infra 项目稳定上下文：定位、必读文档、命名约定、AI 协作边界
 alwaysApply: true
 ---
 
@@ -14,23 +14,38 @@ alwaysApply: true
 ## 必读文档（每次开始新任务前先读）
 
 1. `.cursor/rules/01-user-profile.mdc` — 用户背景、求职定位、决策原则与红线
-2. `Docs/architecture/` 目录下版本号最大的那份 — 当前线上架构事实
-3. `Docs/scheme/phase-1-architecture-upgrade.md` — 当前演进路线图
+2. `.cursor/rules/15-current-facts.mdc` — 动态事实查询入口（节点清单、架构语义、凭据等）
+3. `Docs/architecture/` 目录下版本号最大的那份 — 当前线上架构语义事实
+4. `inventory/hosts.yml` — 当前节点运行时事实（hostname、Ansible 分组、SSH 信息）
+5. `Docs/scheme/phase-1-architecture-upgrade.md` — 当前演进路线图
 
 涉及文档撰写时遵循 `.cursor/rules/10-docs-workflow.mdc`。
 
-## 节点固定事实（严禁修改）
+## 当前集群规模与命名约定
 
-| 节点 | 配置 | 云厂商 | Tailscale IP | 角色（V1.6） |
-|------|------|--------|--------------|-------------|
-| gz-01 | 2C2G | 阿里云·广州 | 100.117.7.75 | 网关 / 监控主节点 |
-| gz-02 | 4C4G | 腾讯云·广州 | 100.79.132.125 | 应用 + MySQL 实时从 + Redis 从 |
-| gz-03 | 4C8G | 火山引擎·广州 | 100.92.5.116 | 应用 + MySQL 主 + ProxySQL + Redis 主 |
-| bj-01 | 4C16G | 京东云·北京 | 100.118.69.78 | Ansible 控制 + Jenkins + Registry + Alertmanager + MySQL 延迟从 |
+**当前规模概述**（仅作 minimal context；具体节点清单、IP、规格、角色一律以最新架构快照与 `inventory/hosts.yml` 为准）：
 
-延迟：同城（gz-01/02/03 互连）~5ms；跨城（任意 ↔ bj-01）~35ms。
+- 跨多个云厂商的真实多云集群
+- 节点分布于广州与北京两地
+- 同城节点之间走 Tailscale 内网延迟较低；跨城节点延迟较高（具体实测值见最新架构快照"网络互联"段）
 
-节点互联走 Tailscale WireGuard，不依赖公网端口暴露。Ansible 控制仓库仅 bj-01 持有；各节点线上运行目录统一 `/opt/docker`，由 Ansible 渲染下发。
+**节点 hostname 命名约定**：
+
+| 维度 | 约定 |
+|------|------|
+| 格式 | `<region>-<NN>` |
+| `region` | 2 位小写字母城市代码（`gz`、`bj`、`sh`、`hk`、`sg` 等） |
+| `NN` | 2 位零填充数字序号（`01`-`99`） |
+| 序号分配 | 同一 region 内严格递增；**不复用**已退役节点的序号 |
+| role 是否进 hostname | **不进**，hostname 与角色解耦，角色信息只出现在架构快照 |
+| 大小写 | 全小写 |
+| 例外处理 | 不符合该约定的命名需在架构快照中显式说明原因 |
+
+**节点互联与目录约定**（不随版本变化）：
+
+- 节点互联走 **Tailscale WireGuard** 加密隧道，不依赖公网端口暴露
+- Ansible 控制仓库 `/opt/docker-infra` 仅由 Ansible 控制节点持有
+- 各节点线上运行目录统一为 `/opt/docker`，由 Ansible 渲染下发，不在该目录执行 git pull/clone
 
 ## AI 协作边界
 
@@ -41,10 +56,10 @@ alwaysApply: true
 
 **禁止**：
 - 堆砌当前用不到的组件（"看起来专业"）
-- 引入需要大量额外节点的方案
+- 为"看起来专业"而无理由扩节点；如方案确实需要额外节点支撑，必须先说明理由再评估采购
 - 给出能跑通但讲不清的代码
 - 把敏感信息（密码、token、webhook URL 真值）写入任何普通文件
-- 修改节点 IP / 配置规格 / 延迟值这类固定事实
+- 修改节点 IP / 配置规格 / 延迟值时跳过流程：必须先更新 `inventory/hosts.yml` 与最新架构快照，规则文件不再硬编码这些动态事实
 
 ## 决策红线（来自用户画像）
 
