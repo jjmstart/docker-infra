@@ -1,0 +1,9 @@
+---
+- name: Setup MySQL logical backup and restore drill tools
+  hosts: "db_master_nodes:ops_nodes"
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - mysql-backup

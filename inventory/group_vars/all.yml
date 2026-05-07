@@ -80,3 +80,14 @@ registry_image_tag: "registry:2"
 # ── 应用镜像版本 ──────────────────────────────────────────────────────────────
 ruoyi_image_name: "ruoyi"
 ruoyi_image_tag: "latest"
+
+# ── MySQL 逻辑备份 (V1.7) ──────────────────────────────────────────────────────────────
+mysql_backup_database: "ry-vue"
+mysql_backup_dir: "{{ docker_root }}/backup/mysql"
+mysql_backup_retention_days: 3
+mysql_backup_cron_hour: "2"
+mysql_backup_cron_minute: "0"
+mysql_backup_oss_prefix: "docker-infra/mysql/ruoyi"
+
+ossutil_version: "1.7.18"
+ossutil_install_dir: /usr/local/bin

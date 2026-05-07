@@ -1,0 +1,56 @@
+---
+- name: Ensure ossutil install directory exists
+  ansible.builtin.file:
+    path: "{{ ossutil_install_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Install ossutil fixed version
+  ansible.builtin.get_url:
+    url: "https://gosspublic.alicdn.com/ossutil/{{ ossutil_version }}/ossutil64"
+    dest: "{{ ossutil_install_dir }}/ossutil-{{ ossutil_version }}"
+    mode: "0755"
+  when: not ansible_check_mode
+
+- name: Link ossutil binary
+  ansible.builtin.file:
+    src: "{{ ossutil_install_dir }}/ossutil-{{ ossutil_version }}"
+    dest: "{{ ossutil_install_dir }}/ossutil"
+    state: link
+    force: true
+
+- name: Render ossutil config
+  ansible.builtin.template:
+    src: ossutilconfig.j2
+    dest: /root/.ossutilconfig
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Ensure MySQL backup directory exists on master
+  ansible.builtin.file:
+    path: "{{ mysql_backup_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  when: inventory_hostname in groups['db_master_nodes']
+
+- name: Render MySQL backup script on master
+  ansible.builtin.template:
+    src: mysql_backup.sh.j2
+    dest: "{{ mysql_backup_dir }}/mysql_backup.sh"
+    owner: root
+    group: root
+    mode: "0750"
+  when: inventory_hostname in groups['db_master_nodes']
+
+- name: Configure MySQL backup cron on master
+  ansible.builtin.cron:
+    name: docker-infra mysql logical backup to OSS
+    user: root
+    minute: "{{ mysql_backup_cron_minute }}"
+    hour: "{{ mysql_backup_cron_hour }}"
+    job: "{{ mysql_backup_dir }}/mysql_backup.sh >> {{ mysql_backup_dir }}/mysql_backup.log 2>&1"
+  when: inventory_hostname in groups['db_master_nodes']

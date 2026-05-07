@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+MYSQL_ENV_FILE="{{ docker_root }}/backend/mysql/.env"
+BACKUP_DIR="{{ mysql_backup_dir }}"
+MYSQL_DATABASE="{{ mysql_backup_database }}"
+RETENTION_DAYS="{{ mysql_backup_retention_days }}"
+OSS_BUCKET="{{ oss_bucket_name }}"
+OSS_PREFIX="{{ mysql_backup_oss_prefix }}"
+OSSUTIL="{{ ossutil_install_dir }}/ossutil"
+
+timestamp="$(date +%Y%m%d_%H%M%S)"
+backup_file="${BACKUP_DIR}/ruoyi_backup_${timestamp}.sql.gz"
+tmp_file="${backup_file}.tmp"
+
+cd "{{ docker_root }}/backend/mysql"
+set -a
+# shellcheck disable=SC1090
+. "${MYSQL_ENV_FILE}"
+set +a
+
+echo "[INFO] $(date '+%F %T') start mysql logical backup, database=${MYSQL_DATABASE}"
+
+docker exec -e MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" -i mysql \
+  mysqldump \
+  -uroot \
+  --default-character-set=utf8mb4 \
+  --single-transaction \
+  --routines \
+  --triggers \
+  --events \
+  --set-gtid-purged=OFF \
+  --databases "${MYSQL_DATABASE}" \
+  | gzip -c > "${tmp_file}"
+
+test -s "${tmp_file}"
+mv "${tmp_file}" "${backup_file}"
+
+"${OSSUTIL}" cp -f "${backup_file}" "oss://${OSS_BUCKET}/${OSS_PREFIX}/$(basename "${backup_file}")" \
+  --config-file /root/.ossutilconfig
+
+find "${BACKUP_DIR}" -type f -name "ruoyi_backup_*.sql.gz" -mtime +"${RETENTION_DAYS}" -delete
+
+echo "[INFO] $(date '+%F %T') backup uploaded: oss://${OSS_BUCKET}/${OSS_PREFIX}/$(basename "${backup_file}")"
