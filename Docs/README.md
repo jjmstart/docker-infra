@@ -48,6 +48,7 @@
 | [proposals/v1.5-alerting.md](proposals/v1.5-alerting.md) | V1.5 | 告警系统设计草案（已落地，最终状态见 `architecture/v1.5.md`）    |
 | [proposals/v1.6-pipeline.md](proposals/v1.6-pipeline.md) | V1.6 | 应用交付流水线设计草案（已落地，最终状态见 `architecture/v1.6.md`） |
 | [proposals/v1.7-backup.md](proposals/v1.7-backup.md)     | V1.7 | 备份恢复最小闭环设计草案（已落地，最终状态见 `architecture/v1.7.md`）  |
+| [proposals/v1.8-node-onboarding.md](proposals/v1.8-node-onboarding.md) | V1.8 | 六节点基础接入设计草案：gz-04/gz-05 Tailscale 接入 + Docker + node-exporter + Prometheus 纳管（讨论中） |
 
 
 ### architecture/
@@ -79,6 +80,7 @@
 | [runbooks/v1.4-to-v1.5.md](runbooks/v1.4-to-v1.5.md) | V1.4 → V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警系统操作手册（8 个 Phase） |
 | [runbooks/v1.5-to-v1.6.md](runbooks/v1.5-to-v1.6.md) | V1.5 → V1.6 | 私有 Registry + ruoyi CI/CD 全链路操作手册                                       |
 | [runbooks/v1.6-to-v1.7.md](runbooks/v1.6-to-v1.7.md) | V1.6 → V1.7 | MySQL 逻辑备份 + OSS 上传 + bj-01 恢复演练操作手册                                    |
+| [runbooks/v1.7-to-v1.8.md](runbooks/v1.7-to-v1.8.md) | V1.7 → V1.8 | gz-04/gz-05 Tailscale 接入 + Docker 安装 + node-exporter 纳管 + Prometheus scrape targets 新增 |
 
 
 ### retrospectives/

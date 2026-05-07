@@ -13,3 +13,4 @@
 | [v1.4-to-v1.5.md](v1.4-to-v1.5.md) | 新增 Prometheus alert rules、blackbox-exporter、Alertmanager 和飞书通知，建立服务异常主动告警闭环 | gz-01（Prometheus/Grafana/blackbox-exporter）、bj-01（Alertmanager/飞书 adapter/Ansible 控制节点）、gz-02/gz-03（监控目标） |
 | [v1.5-to-v1.6.md](v1.5-to-v1.6.md) | 新增私有 Docker Registry、CI 镜像构建推送 Pipeline、参数化 CD 部署、Smoke Test 和飞书部署通知，建立完整应用交付流水线 | bj-01（Registry/Jenkins CI+CD/GC Job）、gz-02/gz-03（Docker daemon 配置 + ruoyi 镜像地址变更）、gz-01（Smoke Test 数据源） |
 | [v1.6-to-v1.7.md](v1.6-to-v1.7.md) | 新增 MySQL 逻辑备份、OSS 上传和 bj-01 临时库恢复演练，建立备份恢复最小闭环 | gz-03（MySQL Master + 备份执行）、bj-01（Ansible 控制 + 恢复演练） |
+| [v1.7-to-v1.8.md](v1.7-to-v1.8.md) | 新增 gz-04/gz-05 两台广州节点基础接入：Tailscale tailnet 加入（IaC）、Docker Engine 安装、node-exporter 纳管、Prometheus scrape target 新增 | gz-04/gz-05（新节点）、bj-01（Ansible 控制）、gz-01（Prometheus 配置更新） |
