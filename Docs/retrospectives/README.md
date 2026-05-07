@@ -11,3 +11,4 @@
 | [v1.4-retrospective.md](v1.4-retrospective.md) | V1.4 | 2026 年 | Ansible + Jenkins CI/CD 统一配置管理复盘，完成 git push 自动下发全节点配置 |
 | [v1.5-retrospective.md](v1.5-retrospective.md) | V1.5 | 2026 年 | 告警闭环复盘：新增 Prometheus 规则、blackbox-exporter、Alertmanager 和 prometheus-alert 飞书通知组件，Phase 1-8 全部通过，arch-v1.5 tag 已打 |
 | [v1.6-retrospective.md](v1.6-retrospective.md) | V1.6 | 2026 年 | 应用交付链路复盘：私有 Docker Registry、ruoyi CI/CD 全链路打通、参数化部署回滚、Smoke Test、飞书职责分离通知、Registry GC Pipeline，全量验收通过，arch-v1.6 tag 已打 |
+| [v1.7-retrospective.md](v1.7-retrospective.md) | V1.7 | 2026 年 | 备份恢复闭环复盘：mysqldump + OSS 上传 + bj-01 恢复演练，实测 RTO 34 秒，含 IDE 未保存/RAM 授权/vault 密码文件等 6 条踩坑记录 |

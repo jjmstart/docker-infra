@@ -30,7 +30,7 @@
 | 场景                           | 应读的文件夹                                                                  |
 | ---------------------------- | ----------------------------------------------------------------------- |
 | 我想讨论下一次架构升级，还没有开始实施          | [proposals/](proposals/) → 读对应草案（如 `v1.5-alerting.md`）                  |
-| 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.5.md`（最新版）                       |
+| 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.7.md`（最新版）                       |
 | 我要开始执行某次架构演进，需要逐步操作指引        | [runbooks/](runbooks/) → 读对应版本手册（如 `v1.3-to-v1.4.md`）                   |
 | 演进刚完成，我想复盘做了什么、踩了什么坑、加深理解    | [retrospectives/](retrospectives/) → 读对应版本总结（如 `v1.2-retrospective.md`） |
 
@@ -47,7 +47,7 @@
 | [proposals/README.md](proposals/README.md)               | —    | 架构设计草案索引                                      |
 | [proposals/v1.5-alerting.md](proposals/v1.5-alerting.md) | V1.5 | 告警系统设计草案（已落地，最终状态见 `architecture/v1.5.md`）    |
 | [proposals/v1.6-pipeline.md](proposals/v1.6-pipeline.md) | V1.6 | 应用交付流水线设计草案（已落地，最终状态见 `architecture/v1.6.md`） |
-| [proposals/v1.7-backup.md](proposals/v1.7-backup.md)     | V1.7 | 备份恢复最小闭环设计草案（讨论中）                             |
+| [proposals/v1.7-backup.md](proposals/v1.7-backup.md)     | V1.7 | 备份恢复最小闭环设计草案（已落地，最终状态见 `architecture/v1.7.md`）  |
 
 
 ### architecture/
@@ -62,7 +62,8 @@
 | [architecture/v1.3.md](architecture/v1.3.md)     | V1.3 | `/opt/docker` 纳入 Git + GitHub Private 管理（历史归档）                                            |
 | [architecture/v1.4.md](architecture/v1.4.md)     | V1.4 | Ansible + Jenkins CI/CD，git push 全自动下发配置（历史归档）                                            |
 | [architecture/v1.5.md](architecture/v1.5.md)     | V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警闭环（历史归档）                            |
-| [architecture/v1.6.md](architecture/v1.6.md)     | V1.6 | 私有 Docker Registry + ruoyi CI 自动触发 + 参数化 CD + Smoke Test + Registry GC + 飞书双机器人（**当前最新**） |
+| [architecture/v1.6.md](architecture/v1.6.md)     | V1.6 | 私有 Docker Registry + ruoyi CI 自动触发 + 参数化 CD + Smoke Test + Registry GC + 飞书双机器人（历史归档） |
+| [architecture/v1.7.md](architecture/v1.7.md)     | V1.7 | mysqldump 逻辑备份 + 阿里云 OSS 上传 + bj-01 恢复演练，实测 RTO 34 秒（**当前最新**） |
 
 
 ### runbooks/
@@ -91,6 +92,7 @@
 | [retrospectives/v1.4-retrospective.md](retrospectives/v1.4-retrospective.md) | V1.4 | Ansible + Jenkins CI/CD 统一配置管理复盘 |
 | [retrospectives/v1.5-retrospective.md](retrospectives/v1.5-retrospective.md) | V1.5 | 告警系统闭环与故障演练复盘                    |
 | [retrospectives/v1.6-retrospective.md](retrospectives/v1.6-retrospective.md) | V1.6 | 应用交付流水线全链路复盘                     |
+| [retrospectives/v1.7-retrospective.md](retrospectives/v1.7-retrospective.md) | V1.7 | 备份恢复闭环复盘（含 6 条踩坑，实测 RTO 34 秒）  |
 
 
 ---
