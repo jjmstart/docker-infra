@@ -1,0 +1,51 @@
+---
+description: 动态事实查询入口（节点清单、架构语义、Ansible 分组、凭据位置）
+alwaysApply: true
+---
+
+# 当前事实查询入口
+
+## 单一来源原则
+
+`.cursor/rules/` 只承载**稳定原则、规范、模板与决策红线**，不复制任何随架构演进而变化的事实（节点 IP、规格、角色、服务分布、监听地址、延迟等）。当 AI 需要回答"当前是什么样"的问题时，必须按本文件提供的指针读源头，不得依赖规则文件中的示例值。
+
+## 查询入口
+
+| 你想知道的事 | 应当读取的源头 |
+|------|------|
+| 节点运行时清单（hostname、Ansible 分组、SSH 连接信息） | `inventory/hosts.yml` |
+| 全局非敏感变量（端口、镜像名、IP 别名等） | `inventory/group_vars/all.yml` |
+| 主机差异变量（如各节点 `registry_mirrors`、`docker_dns`） | `inventory/hosts.yml` 主机段 |
+| 当前架构语义（节点角色、服务分布、容器端口、网络拓扑、关键链路） | `Docs/architecture/` 目录下版本号最大的那份 `vX.X.md` |
+| 已落地版本与归档历史 | `Docs/architecture/README.md` |
+| 当前演进路线图与子任务状态 | `Docs/scheme/phase-1-architecture-upgrade.md` |
+| 未落地的设计草案 | `Docs/proposals/` |
+| 历次升级操作手册 | `Docs/runbooks/` |
+| 历次演进复盘与踩坑 | `Docs/retrospectives/` |
+| 凭据（密码、token、webhook URL、OSS AccessKey 等） | `vault/secrets.yml`（ansible-vault 加密，需 `--ask-vault-pass`） |
+| Jenkins Job 列表与触发方式 | 最新架构快照 §"Jenkins Jobs 总览" |
+| 镜像 tag 与 Registry 内容 | `100.118.69.78:5000`（V1.7）的 `/v2/_catalog`、`/v2/<name>/tags/list` API |
+
+## 读取协议
+
+1. **优先读架构快照**：拿语义层信息（节点角色、服务-节点映射、网络拓扑、决策记录）
+2. **再读 inventory**：拿运行时分组、变量、主机连接细节
+3. **冲突仲裁**：架构快照与 inventory 不一致时，**以 inventory 为运行时真相**，同时**主动提示用户**："架构快照 `vX.X.md` 与 inventory 在 [具体项] 上不一致，是否需要更新快照？"
+4. **不向用户口播未读取的事实**：禁止凭印象回答"当前 Prometheus 在 gz-01"这类问题；必须先读最新快照再回答
+
+## 鲜度检查
+
+执行任何依赖"当前架构事实"的任务前，AI 应主动确认：
+
+- 最新架构快照的版本号是否对应最新 Git tag（`git tag -l 'arch-*' | sort -V | tail -1`）
+- 快照中节点数量与 `inventory/hosts.yml` 节点数量是否一致
+- 如发现快照落后于实际节点状态，**先停下来提示用户**："当前最新快照为 vX.X，但 inventory 已包含 N 个节点，建议先更新架构快照再继续"，待用户确认后再推进
+
+## 规则文件中允许保留的硬编码
+
+为保证规则可读性，以下情况允许在规则文件中出现具体值，但必须伴随"以最新架构快照为准"的注释：
+
+- `40-registry-and-buildkit.mdc` 中 Registry 监听地址（节点角色一旦稳定，长期不变）
+- `50-future-k3s-helm-loki.mdc` 中 ProxySQL 连接地址（同上）
+
+其余位置一律使用 placeholder 或通用描述，不写具体 IP、规格、节点名。
