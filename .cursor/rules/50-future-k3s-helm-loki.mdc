@@ -10,11 +10,11 @@ alwaysApply: false
 
 **只承载无状态服务**（ruoyi-admin 等 Java/Web 后端）。
 
-**不**迁移到 K3s 的服务（继续 Compose 承载）：
-- MySQL 主从（gz-03 主、gz-02 实时从、bj-01 延迟从 3600s）
+**不**迁移到 K3s 的服务（继续 Compose 承载，具体主/从节点以最新 architecture 快照为准）：
+- MySQL 主从（包含实时从库与延迟从库）
 - Redis 主从 + Sentinel
 - ProxySQL
-- 监控栈（Prometheus / Grafana / Alertmanager）
+- 监控栈（Prometheus / Grafana / Alertmanager / Loki）
 - Nginx 网关
 
 理由：有状态服务在 K8s 上的运维复杂度远超初级岗要求，且现有 Compose 方案已成熟。
@@ -31,7 +31,7 @@ alwaysApply: false
 
 **Ingress**：使用 K3s 内置 Traefik，hostname 指向已有域名
 
-**ConfigMap**：非敏感配置（端口、日志级别、ProxySQL 连接 `100.92.5.116:6033`）
+**ConfigMap**：非敏感配置（端口、日志级别、ProxySQL 连接 `<proxysql-host>:6033`，具体地址以最新 architecture 快照为准；V1.7 为 `100.92.5.116:6033`）
 
 **Secret**：敏感值 base64 编码；**禁止**把真值提交到 Git，提交 placeholder + 单独说明加载方式
 
@@ -67,7 +67,7 @@ helm upgrade --install ruoyi ./charts/ruoyi \
 
 ## Loki label 设计
 
-**必含**：`node`（gz-01/02/03/bj-01）、`service`（容器名）、`env`（prod）。
+**必含**：`node`（取值为当前所有节点 hostname，以 `inventory/hosts.yml` 为准）、`service`（容器名或 K3s Pod 标签）、`env`（如 `prod`）。
 
 **禁止**作为 label：高基数字段（`user_id`、`request_id`、`session_id`、`trace_id`）——会导致 Loki 索引爆炸。这类字段放日志正文，用 LogQL 全文检索。
 

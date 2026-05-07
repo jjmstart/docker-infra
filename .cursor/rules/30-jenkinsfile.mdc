@@ -101,10 +101,13 @@ curl -sS -f -X POST "$URL" \
 **必须**调用 Prometheus Query API 查 blackbox-exporter 探测结果：
 
 ```bash
-curl -sf "http://100.117.7.75:9090/api/v1/query" \
+# <prometheus-host>:9090 取自最新 architecture 快照中的监控主节点 Tailscale IP
+curl -sf "http://<prometheus-host>:9090/api/v1/query" \
   --data-urlencode 'query=min(probe_success{service="ruoyi"})' \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['result'][0]['value'][1])"
 ```
+
+> Prometheus 主机地址会随监控主节点变更而变化，**禁止**在 Jenkinsfile 中硬编码；建议通过 Jenkins Global Environment 或 Credentials 注入，或在 Pipeline 起始 stage 从 `inventory` 读出。
 
 ## 飞书通知统一模式
 

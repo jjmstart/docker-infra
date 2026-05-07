@@ -44,7 +44,9 @@ ruoyi:latest                             # 同步推送，作为兜底默认值
 
 ## Registry 访问角色
 
-凡需要 push 或 pull 私有 Registry 的节点都需要 `insecure-registries: ["100.118.69.78:5000"]` 配置，**包括 Registry 宿主机自身（bj-01）**。
+凡需要 push 或 pull 私有 Registry 的节点都需要 `insecure-registries: ["<registry-host>:5000"]` 配置，**包括 Registry 宿主机自身**。
+
+> Registry 监听地址以最新 architecture 快照为准（V1.7 为 `100.118.69.78:5000`，运行在当前 `ops_nodes` 分组节点上）；Registry 宿主一旦迁移，必须同步更新 inventory `registry_host` 变量与最新架构快照，**禁止**在规则文件或模板中硬编码具体 IP。
 
 设计时按"谁访问 Registry"列清单（CI push、节点 pull、Registry 宿主验证）而不仅是"谁跑业务容器"。
 
@@ -52,7 +54,7 @@ ruoyi:latest                             # 同步推送，作为兜底默认值
 
 - Basic Auth 用户名/密码 → `vault/secrets.yml` 加密
 - 节点首次 pull 前 Ansible 自动 `docker login`（shell 模块）
-- bj-01 本地手工 push/pull 前必须**手工** `docker login`（Ansible 不覆盖手工场景）
+- Registry 宿主节点上本地手工 push/pull 前必须**手工** `docker login`（Ansible 不覆盖手工场景）
 
 ## Jenkins 容器边界
 
