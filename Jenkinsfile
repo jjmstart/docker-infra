@@ -1,25 +1,36 @@
+// docker-infra CD：拉代码 → Ansible 预检 →（仅 main）全量部署 → Prometheus 烟测 → 飞书通知。
+// 镜像构建与推 Registry 在 ruoyi 仓库的独立 Jenkins Job；本文件只负责用 IMAGE_TAG 驱动 Ansible 下发。
 pipeline {
   agent any
+
   options {
-    timestamps()
-    disableConcurrentBuilds()
+    timestamps()              // 日志带时间戳，便于对齐 Ansible / 业务日志
+    disableConcurrentBuilds() // 避免同一 Job 并发改同一批节点
   }
+
   parameters {
+    // 与 ruoyi CI 产出的 tag 对齐（如 BUILD-SHA）；默认 latest，与 group_vars 一致
     string(
       name: 'IMAGE_TAG',
       defaultValue: 'latest',
       description: 'ruoyi 镜像 tag，例如 42-a3f8c1d。留空使用默认值 latest。'
     )
   }
+
   environment {
+    // 首次 SSH 到各节点时不因 known_hosts 阻塞（密钥仍由 ansible-ssh-key 提供）
     ANSIBLE_HOST_KEY_CHECKING = 'False'
   }
+
   stages {
+    // 拉取当前 Job 绑定的 SCM（通常为 docker-infra 的 main）
     stage('Checkout') {
       steps {
         checkout scm
       }
     }
+
+    // 确认 Jenkins agent 上 ansible-playbook 可用，避免 credentials 阶段才失败
     stage('Verify Ansible') {
       steps {
         sh '''
@@ -29,6 +40,8 @@ pipeline {
         '''
       }
     }
+
+    // 任意分支都跑：dry-run，不写远端；尽早发现 playbook / vault / 模板问题
     stage('Ansible Check') {
       steps {
         withCredentials([
@@ -48,6 +61,8 @@ pipeline {
         }
       }
     }
+
+    // 仅 main：真实执行 site.yml，将 ruoyi 镜像版本写入各 app 节点并 compose 滚动
     stage('Deploy') {
       when {
         anyOf {
@@ -72,6 +87,9 @@ pipeline {
         }
       }
     }
+
+    // 仅 main：用 Prometheus 上 blackbox 的 probe_success 判定业务探测，避免 Jenkins 直连业务 IP
+    // 查询地址需与当前监控主节点（如 gz-01）一致，变更节点时请同步架构快照与此处或改为注入变量
     stage('Smoke Test') {
       when {
         anyOf {
@@ -105,7 +123,9 @@ else:
       }
     }
   }
+
   post {
+    // 整次 Pipeline 成功（含非 main 仅跑 Check 的成功）：发飞书；main 上通常表示部署+烟测通过
     success {
       withCredentials([string(credentialsId: 'feishu-webhook-url-jenkins-notify', variable: 'FEISHU_URL')]) {
         sh '''
@@ -124,6 +144,7 @@ EOF
         '''
       }
     }
+    // 任一 stage 失败：提醒人工看 Jenkins 控制台与 Ansible 输出
     failure {
       withCredentials([string(credentialsId: 'feishu-webhook-url-jenkins-notify', variable: 'FEISHU_URL')]) {
         sh '''
