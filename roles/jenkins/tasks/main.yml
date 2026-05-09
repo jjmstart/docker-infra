@@ -1,13 +1,19 @@
 ---
+# roles/jenkins
+# 职责：在目标机渲染 Jenkins 的 docker-compose.yml，并保证工作目录存在。
+# 实际起停由 handlers 里 docker_compose_v2 完成；与架构快照中「Jenkins 部署路径」保持一致。
 - name: Ensure Jenkins directory exists
   ansible.builtin.file:
+    # 宿主机目录：compose、jenkins_home 等均挂在此路径下
     path: "{{ docker_root }}/cicd/jenkins"
     state: directory
     mode: "0755"
 
 - name: Render Jenkins compose file
   ansible.builtin.template:
+    # 变量来自 inventory / group_vars（如 docker_root、docker_network_name、ansible_host）
     src: docker-compose.yml.j2
     dest: "{{ docker_root }}/cicd/jenkins/docker-compose.yml"
     mode: "0644"
+  # compose 内容变更时才触发 handler，避免每次 playbook 都重建容器
   notify: restart jenkins

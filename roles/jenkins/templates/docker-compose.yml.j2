@@ -1,21 +1,28 @@
+# 由 Ansible roles/jenkins 渲染生成；手动改会在下次 playbook 时被覆盖。
+# 意图：Jenkins 跑在自定义镜像上，仅本机回环暴露 UI/agent，同时经 Tailscale 地址供内网访问。
 services:
   jenkins:
     image: jenkins-ansible:latest
     container_name: jenkins
     restart: unless-stopped
 
+    # jenkins 进程用户与宿主机 docker 组 gid 对齐，便于挂载 docker.sock 时权限一致（以实际镜像/宿主机为准）
     user: "1000:988"
 
     ports:
+      # 本机进程只绑 127.0.0.1，避免公网直连 Web
       - "127.0.0.1:8080:8080"
       - "127.0.0.1:50000:50000"
+      # 内网（如 Tailscale）IP 上再暴露 8080，供跨节点浏览器或 agent 访问
       - "{{ ansible_host }}:8080:8080"
 
     volumes:
       - {{ docker_root }}/cicd/jenkins/data:/var/jenkins_home
+      # 在 Jenkins 容器内执行 docker build / docker run（DinD 以外的常见做法）
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
       - /usr/libexec/docker/cli-plugins:/usr/libexec/docker/cli-plugins
+      # 流水线需要读写的后端仓库挂载点（与线上 /opt/docker 布局一致）
       - {{ docker_root }}/backend/ruoyi:/opt/docker/backend/ruoyi
 
     environment:
@@ -26,5 +33,6 @@ services:
       - {{ docker_network_name }}
 
 networks:
+  # 使用 Ansible 已创建的 external 网络，与其它 Compose 栈互通
   {{ docker_network_name }}:
     external: true

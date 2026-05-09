@@ -1,6 +1,9 @@
 ---
+# roles/jenkins handlers
+# 由 tasks 里 template 的 notify 触发：仅在 compose 实际变更（changed）后执行，避免无谓重启。
 - name: restart jenkins
   community.docker.docker_compose_v2:
     project_src: "{{ docker_root }}/cicd/jenkins"
     state: present
+    # recreate: auto — 镜像/挂载/环境等变更时 Compose 会重建需更新的服务；无变更则不动
     recreate: auto
