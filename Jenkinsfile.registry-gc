@@ -1,19 +1,29 @@
+// Registry GC Pipeline
+// 功能：定期清理 Docker Registry 中的旧镜像 tag，回收 blob 存储空间。
+// 策略：两段式 GC——先通过 DELETE API 软删除超出保留数量的旧 manifest，
+//       再执行裸 garbage-collect 回收孤儿 blob，避免 --delete-untagged 破坏
+//       BuildKit OCI image index 下的 child manifest（详见 40-registry-and-buildkit.mdc）。
 pipeline {
   agent any
   options {
     timestamps()
+    // GC 会执行 docker exec registry，并发运行会造成 GC 与软删除交叉，导致结果不可预测
     disableConcurrentBuilds()
   }
   triggers {
-    // 每周日凌晨 2:00 自动触发
+    // 每周日凌晨 2:00 自动触发，低峰期执行避免影响 CI 推送
     cron('0 2 * * 0')
   }
   environment {
-    REGISTRY_HOST = '100.118.69.78:5000'
+    REGISTRY_HOST = '100.118.69.78:5000'  // 以最新架构快照为准，变更时同步修改
     IMAGE_NAME    = 'ruoyi'
+    // 保留最新的 N 个版本 tag；超出部分按 BUILD_NUMBER 升序删除最旧的
     KEEP_TAGS     = '10'
   }
   stages {
+    // 阶段一：通过 Registry v2 API 拉取全部 tag 列表，用 Python 区分版本 tag 与非版本 tag，
+    // 计算出需要软删除的旧 tag，写入 tags_to_delete.txt 供后续阶段消费。
+    // 非版本 tag（如 latest）不参与 GC，防止误删线上兜底镜像。
     stage('Query Tags') {
       steps {
         withCredentials([
@@ -40,10 +50,12 @@ tags = data.get('tags') or []
 keep = int(os.environ['KEEP_TAGS'])
 
 # 过滤出 {BUILD_NUMBER}-{SHA} 格式的版本 tag，按 BUILD_NUMBER 升序
+# 判断规则：含连字符且第一段全为数字（即 BUILD_NUMBER）
 versioned = sorted(
     [t for t in tags if '-' in t and t.split('-', 1)[0].isdigit()],
     key=lambda t: int(t.split('-', 1)[0])
 )
+# latest 等非版本 tag 不进 GC 范围，避免删除兜底标签
 non_versioned = [t for t in tags if t not in versioned]
 
 print("版本 tag（按 BUILD_NUMBER 升序，共 %d 个）：" % len(versioned))
@@ -51,6 +63,7 @@ for t in versioned:
     print("  " + t)
 print("非版本 tag（不参与 GC，共 %d 个）：%s" % (len(non_versioned), non_versioned))
 
+# 保留最新的 KEEP_TAGS 个，其余升序排在前面的为最旧，写入待删列表
 to_delete = versioned[:-keep] if len(versioned) > keep else []
 print("")
 print("KEEP_TAGS=%d，待删除 tag（共 %d 个）：" % (keep, len(to_delete)))
@@ -73,6 +86,10 @@ PYEOF
         }
       }
     }
+    // 阶段二：对 tags_to_delete.txt 中的每个 tag，先通过 HEAD 请求拿到 digest，
+    // 再用 DELETE /v2/<name>/manifests/<digest> 做"软删除"（只标记 manifest 为删除态，
+    // blob 数据仍在磁盘，需等阶段三 GC 才真正回收）。
+    // 必须用 digest 而非 tag 名删除，否则 Registry v2 API 会返回 405 Method Not Allowed。
     stage('Delete Old Manifests') {
       steps {
         withCredentials([
@@ -92,6 +109,7 @@ PYEOF
             while IFS= read -r tag; do
               [ -z "$tag" ] && continue
               echo "[${tag}] 获取 digest..."
+              # HEAD 请求返回的 Docker-Content-Digest 响应头即 manifest 的内容寻址哈希
               digest=$(curl -sf -u "${REGISTRY_USER}:${REGISTRY_PASS}" \
                 -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
                 -I "http://${REGISTRY_HOST}/v2/${IMAGE_NAME}/manifests/${tag}" \
@@ -112,6 +130,9 @@ PYEOF
         }
       }
     }
+    // 阶段三：执行裸 garbage-collect，回收被软删除的 manifest 所引用的孤儿 blob，
+    // 前后各打印一次数据目录占用，便于在日志中直观确认回收效果。
+    // Jenkins 容器与 registry 容器文件系统隔离，必须通过 docker exec 读取容器内路径。
     stage('Garbage Collect') {
       steps {
         sh '''
@@ -140,6 +161,8 @@ PYEOF
     }
   }
   post {
+    // 通知模式：heredoc 写文件 + curl --data-binary @file，避免 Groovy 三单引号内
+    // 内联 JSON 时反斜杠转义被吞导致 curl exit 3（URL malformed）。
     success {
       withCredentials([string(credentialsId: 'feishu-webhook-url-jenkins-notify', variable: 'FEISHU_URL')]) {
         sh '''
