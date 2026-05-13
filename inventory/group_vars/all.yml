@@ -49,45 +49,53 @@ mysqld_exporter_port: 9104  # MySQL 指标采集，部署在 gz-02、gz-03、bj-
 grafana_port: 3000          # Grafana 可视化面板，部署在 gz-01
 prometheus_port: 9090        # Prometheus 监控，部署在 gz-01
 
-# Alerting
+# ── 告警链路（gz-01 Prometheus → bj-01 Alertmanager → 飞书）────────────────────
+# Alertmanager 与 prometheus-alert 均部署在 bj-01；Webhook 真值在 vault
 alertmanager_port: 9093
 alertmanager_host: "{{ bj_01_ip }}"
 alertmanager_external_url: "http://{{ bj_01_ip }}:9093"
 
-# 新增
+# prometheus-alert：将 Alertmanager Webhook 转为飞书消息格式（与 RuoYi 8080 无关）
 prometheus_alert_port: 8080
 prometheus_alert_image: "feiyu563/prometheus-alert:v4.9.2"
 
+# Blackbox Exporter：HTTP/TCP 等探测，供 Prometheus 抓取 blackbox 模块
 blackbox_exporter_port: 9115
 blackbox_exporter_image: "prom/blackbox-exporter:v0.25.0"
 
+# Alertmanager 全局路由：同组告警合并等待、组内再次评估间隔、重复通知间隔
 alert_repeat_interval: 4h
 alert_group_wait: 30s
 alert_group_interval: 5m
 
-alert_disk_free_percent_critical: 15
-alert_inode_free_percent_warning: 15
-alert_memory_available_percent_warning: 10
-alert_cpu_usage_percent_warning: 85
-alert_mysql_realtime_replica_lag_seconds_warning: 60
-alert_mysql_delay_replica_lag_seconds_warning: 3900
+# Prometheus 告警规则阈值（见 roles/monitor-stack/templates/rules/*.j2）
+alert_disk_free_percent_critical: 15              # 根分区可用空间低于此百分比触发严重告警
+alert_inode_free_percent_warning: 15              # 根分区 inode 可用率低于此百分比触发警告
+alert_memory_available_percent_warning: 10        # MemAvailable / MemTotal 低于此百分比触发警告
+alert_cpu_usage_percent_warning: 85               # 5m 平均非 idle CPU 高于此百分比触发警告
+alert_mysql_realtime_replica_lag_seconds_warning: 60   # gz-02 实时从复制延迟（秒）
+alert_mysql_delay_replica_lag_seconds_warning: 3900    # bj-01 延迟从复制延迟（秒），高于 1h 设计值留余量防误报
 
 # ── 私有镜像仓库 ──────────────────────────────────────────────────────────────
+# Registry 部署在 bj-01；推送/拉取侧 insecure-registries 由各节点主机变量合并
 registry_host: "100.118.69.78:5000"
 registry_port: 5000
 registry_image_tag: "registry:2"
 
 # ── 应用镜像版本 ──────────────────────────────────────────────────────────────
+# 推送到私有仓库后的仓库内名称与 tag；完整拉取地址由 Compose 模板拼接 registry_host
 ruoyi_image_name: "ruoyi"
 ruoyi_image_tag: "latest"
 
 # ── MySQL 逻辑备份 (V1.7) ──────────────────────────────────────────────────────────────
+# 由 playbooks/setup_backup.yml 下发至 db_master_nodes / ops_nodes：mysqldump、本地轮转、ossutil 上传 OSS
 mysql_backup_database: "ry-vue"
-mysql_backup_dir: "{{ docker_root }}/backup/mysql"
-mysql_backup_retention_days: 3
+mysql_backup_dir: "{{ docker_root }}/backup/mysql"       # 宿主机上备份文件与脚本目录
+mysql_backup_retention_days: 3                         # 本地保留天数，过期由备份脚本清理
 mysql_backup_cron_hour: "2"
-mysql_backup_cron_minute: "0"
-mysql_backup_oss_prefix: "docker-infra/mysql/ruoyi"
+mysql_backup_cron_minute: "0"                          # 默认每天 02:00 执行（宿主机本地时区）
+mysql_backup_oss_prefix: "docker-infra/mysql/ruoyi"  # OSS 对象键前缀，与 Bucket 组合成完整路径
 
+# 阿里云 ossutil（逻辑备份上传 OSS 用；AccessKey 等敏感项在 vault）
 ossutil_version: "1.7.18"
 ossutil_install_dir: /usr/local/bin
