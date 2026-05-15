@@ -2,7 +2,7 @@ groups:
   - name: mysql
     rules:
       - alert: MySQLMasterDown
-        expr: mysql_up{instance="{{ gz_03_ip }}:{{ mysqld_exporter_port }}"} == 0
+        expr: mysql_up{instance="{{ mysql_master_host }}:{{ mysqld_exporter_port }}"} == 0
         for: 1m
         labels:
           severity: critical
@@ -20,7 +20,7 @@ groups:
           description: "{{ '{{' }} $labels.instance {{ '}}' }} MySQL 复制 IO 或 SQL 线程异常。"
 
       - alert: MySQLRealtimeReplicaLagHigh
-        expr: mysql_slave_status_seconds_behind_master{instance="{{ gz_02_ip }}:{{ mysqld_exporter_port }}"} > {{ alert_mysql_realtime_replica_lag_seconds_warning }}
+        expr: mysql_slave_status_seconds_behind_master{instance="{{ mysql_replica_realtime_host }}:{{ mysqld_exporter_port }}"} > {{ alert_mysql_realtime_replica_lag_seconds_warning }}
         for: 2m
         labels:
           severity: warning
@@ -29,7 +29,7 @@ groups:
           description: "gz-02 Slave1 复制延迟超过 {{ alert_mysql_realtime_replica_lag_seconds_warning }} 秒。"
 
       - alert: MySQLDelayReplicaLagAbnormal
-        expr: mysql_slave_status_seconds_behind_master{instance="{{ bj_01_ip }}:{{ mysqld_exporter_port }}"} > {{ alert_mysql_delay_replica_lag_seconds_warning }}
+        expr: mysql_slave_status_seconds_behind_master{instance="{{ mysql_replica_delay_host }}:{{ mysqld_exporter_port }}"} > {{ alert_mysql_delay_replica_lag_seconds_warning }}
         for: 5m
         labels:
           severity: warning

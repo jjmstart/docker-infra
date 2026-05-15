@@ -18,22 +18,21 @@ scrape_configs:
   - job_name: 'node-exporter'
     static_configs:
       - targets:
-          - 'node-exporter:{{ node_exporter_port }}'
-          - '{{ gz_02_ip }}:{{ node_exporter_port }}'
-          - '{{ gz_03_ip }}:{{ node_exporter_port }}'
-          - '{{ bj_01_ip }}:{{ node_exporter_port }}'
+{% for host in groups['exporter_nodes'] %}
+          - '{{ hostvars[host].ansible_host }}:{{ node_exporter_port }}'
+{% endfor %}
 
   - job_name: 'mysqld-exporter'
     static_configs:
-      - targets: ['{{ gz_03_ip }}:{{ mysqld_exporter_port }}']
+      - targets: ['{{ mysql_master_host }}:{{ mysqld_exporter_port }}']
         labels:
           instance: 'gz-03'
           role: 'master'
-      - targets: ['{{ gz_02_ip }}:{{ mysqld_exporter_port }}']
+      - targets: ['{{ mysql_replica_realtime_host }}:{{ mysqld_exporter_port }}']
         labels:
           instance: 'gz-02'
           role: 'slave1'
-      - targets: ['{{ bj_01_ip }}:{{ mysqld_exporter_port }}']
+      - targets: ['{{ mysql_replica_delay_host }}:{{ mysqld_exporter_port }}']
         labels:
           instance: 'bj-01'
           role: 'slave2'
@@ -69,7 +68,7 @@ scrape_configs:
           severity: warning
 
       - targets:
-          - http://{{ gz_01_ip }}:9090/-/healthy
+          - http://{{ prometheus_host }}:{{prometheus_port}}/-/healthy
         labels:
           service: prometheus
           severity: critical
