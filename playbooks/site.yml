@@ -7,3 +7,4 @@
 - import_playbook: setup_gateway.yml
 - import_playbook: setup_monitor.yml
 - import_playbook: setup_ops.yml
+- import_playbook: setup_backup.yml
