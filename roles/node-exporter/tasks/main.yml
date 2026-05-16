@@ -1,20 +1,20 @@
 ---
-- name: Ensure monitor directory exists
+- name: Ensure node-exporter directory exists
   ansible.builtin.file:
-    path: "{{ docker_root }}/monitor"
+    path: "{{ docker_root }}/node-exporter"
     state: directory
     mode: "0755"
 
 - name: Render node exporter compose file
   ansible.builtin.template:
     src: docker-compose.yml.j2
-    dest: "{{ docker_root }}/monitor/docker-compose.yml"
+    dest: "{{ docker_root }}/node-exporter/docker-compose.yml"
     mode: "0644"
-  notify: restart exporters
+  notify: restart node-exporter
 
-- name: Render mysqld exporter config
-  ansible.builtin.template:
-    src: mysqld-exporter.cnf.j2
-    dest: "{{ docker_root }}/monitor/mysqld-exporter.cnf"
-    mode: "0644"
-  notify: restart exporters
+- name: Ensure node exporter stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_root }}/node-exporter"
+    state: present
+    recreate: auto
+  when: not ansible_check_mode

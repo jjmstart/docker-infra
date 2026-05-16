@@ -1,7 +1,7 @@
 ---
-- name: restart node-exporter
+- name: restart mysqld-exporter
   community.docker.docker_compose_v2:
-    project_src: "{{ docker_root }}/node-exporter"
+    project_src: "{{ docker_root }}/mysqld-exporter"
     state: present
     recreate: auto
   when: not ansible_check_mode

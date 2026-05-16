@@ -1,0 +1,27 @@
+---
+- name: Ensure mysqld-exporter directory exists
+  ansible.builtin.file:
+    path: "{{ docker_root }}/mysqld-exporter"
+    state: directory
+    mode: "0755"
+
+- name: Render mysqld exporter compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_root }}/mysqld-exporter/docker-compose.yml"
+    mode: "0644"
+  notify: restart mysqld-exporter
+
+- name: Render mysqld exporter config
+  ansible.builtin.template:
+    src: mysqld-exporter.cnf.j2
+    dest: "{{ docker_root }}/mysqld-exporter/mysqld-exporter.cnf"
+    mode: "0644"
+  notify: restart mysqld-exporter
+
+- name: Ensure mysqld exporter stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_root }}/mysqld-exporter"
+    state: present
+    recreate: auto
+  when: not ansible_check_mode

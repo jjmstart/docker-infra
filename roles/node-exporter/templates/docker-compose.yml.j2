@@ -24,34 +24,3 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  mysqld-exporter:
-    image: prom/mysqld-exporter:v0.15.1
-    container_name: mysqld-exporter
-    restart: unless-stopped
-
-    volumes:
-      - ./mysqld-exporter.cnf:/etc/mysqld-exporter.cnf:ro
-
-    ports:
-      - "{{ ansible_host }}:{{ mysqld_exporter_port }}:9104"
-
-    command:
-      - --config.my-cnf=/etc/mysqld-exporter.cnf
-      - --collect.slave_status
-      - --collect.slave_hosts
-      - --collect.global_status
-      - --collect.global_variables
-      - --collect.info_schema.processlist
-
-    networks:
-      - {{ docker_network_name }}
-
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-networks:
-  {{ docker_network_name }}:
-    external: true

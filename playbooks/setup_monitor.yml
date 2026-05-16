@@ -6,6 +6,22 @@
     - role: monitor-stack
       tags: [monitor, prometheus, grafana, blackbox]
 
+- name: Deploy node exporter
+  hosts: exporter_nodes
+  become: true
+  roles:
+    - role: node-exporter
+      tags: [exporter, node-exporter]
+
+- name: Deploy mysqld exporter
+  hosts: mysqld_exporter_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - role: mysqld-exporter
+      tags: [exporter, mysqld-exporter]
+
 - name: Deploy alertmanager stack
   hosts: alertmanager_nodes
   become: true
@@ -14,12 +30,3 @@
   roles:
     - role: alertmanager
       tags: [alertmanager, alerting, feishu]
-
-- name: Deploy exporters on database nodes
-  hosts: mysqld_exporter_nodes
-  become: true
-  vars_files:
-    - ../vault/secrets.yml
-  roles:
-    - role: node-exporter
-      tags: [exporter, node-exporter, mysqld-exporter]

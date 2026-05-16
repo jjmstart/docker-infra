@@ -1,26 +1,4 @@
 services:
-  node-exporter:
-    image: prom/node-exporter:v1.8.0
-    container_name: node-exporter
-    uts: host
-    restart: unless-stopped
-
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/rootfs'
-
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   prometheus:
     image: prom/prometheus:v2.53.0
     container_name: prometheus
