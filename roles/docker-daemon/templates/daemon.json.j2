@@ -1,15 +1,27 @@
-{
-  "registry-mirrors": {{ docker_registry_mirrors | default([
+{% set docker_daemon_config = {
+  "registry-mirrors": docker_registry_mirrors | default([
     "https://docker.m.daocloud.io",
     "https://dockerhub.icu",
     "https://docker.1panel.live"
-  ]) | to_json }},
+  ]),
   "live-restore": true,
   "log-driver": "json-file",
   "log-opts": {
     "max-size": "10m",
     "max-file": "3"
-  }{% if inventory_hostname in groups.get('app_nodes', []) or inventory_hostname in groups.get('registry_nodes', []) %},
-  "insecure-registries": ["{{ registry_host }}"]{% endif %}{% if docker_dns is defined %},
-  "dns": {{ docker_dns | to_json }}{% endif %}
-}
+  }
+} %}
+
+{% if docker_insecure_registries is defined and docker_insecure_registries | length > 0 %}
+{% set _ = docker_daemon_config.update({
+  "insecure-registries": docker_insecure_registries
+}) %}
+{% endif %}
+
+{% if docker_dns is defined %}
+{% set _ = docker_daemon_config.update({
+  "dns": docker_dns
+}) %}
+{% endif %}
+
+{{ docker_daemon_config | to_nice_json }}
