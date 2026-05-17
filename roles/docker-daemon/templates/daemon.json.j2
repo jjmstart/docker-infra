@@ -1,15 +1,20 @@
+{# 保留各节点按云厂商差异配置的 Docker Hub mirror；未声明主机变量时使用通用默认值。 #}
 {
   "registry-mirrors": {{ docker_registry_mirrors | default([
     "https://docker.m.daocloud.io",
     "https://dockerhub.icu",
     "https://docker.1panel.live"
   ]) | to_json }},
+  {# Docker daemon 重载或短暂重启时尽量不中断已运行容器。 #}
   "live-restore": true,
+  {# 限制 json-file 日志体积，避免长期运行的容器把磁盘写满。 #}
   "log-driver": "json-file",
   "log-opts": {
     "max-size": "10m",
     "max-file": "3"
+  {# app 节点和 registry 节点都需要信任自建 Registry 的 HTTP 地址。 #}
   }{% if inventory_hostname in groups.get('app_nodes', []) or inventory_hostname in groups.get('registry_nodes', []) %},
   "insecure-registries": ["{{ registry_host }}"]{% endif %}{% if docker_dns is defined %},
+  {# 仅在主机变量声明 docker_dns 时写入，避免覆盖云厂商默认 DNS 行为。 #}
   "dns": {{ docker_dns | to_json }}{% endif %}
 }

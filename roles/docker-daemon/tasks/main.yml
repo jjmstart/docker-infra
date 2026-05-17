@@ -1,9 +1,12 @@
 ---
+# Debian/Ubuntu 仓库内置的 python3-docker 版本可能落后于当前 Docker SDK，
+# 先移除 apt 包，避免后续 pip 安装的 SDK 与系统包混用。
 - name: Remove outdated python3-docker apt package
   ansible.builtin.apt:
     name: python3-docker
     state: absent
 
+# pip 是安装 Python Docker SDK 的前置依赖；镜像源统一放在基础设施 role 中管理。
 - name: Ensure python3-pip is installed
   ansible.builtin.apt:
     name: python3-pip
@@ -19,6 +22,7 @@
       index-url = https://mirrors.aliyun.com/pypi/simple/
       trusted-host = mirrors.aliyun.com
 
+# 清理 root 用户级 pip 配置，确保节点不会继续使用历史残留的失效镜像源。
 - name: Remove root user-level pip config with stale mirror
   ansible.builtin.file:
     path: "{{ item }}"
@@ -27,6 +31,8 @@
     - /root/.pip/pip.conf
     - /root/.config/pip/pip.conf
 
+# Ansible 的 docker_compose_v2 等模块依赖 Python Docker SDK；
+# Python 3.11+ 节点需要显式允许写入系统 Python 环境。
 - name: Install Python Docker SDK via pip
   ansible.builtin.pip:
     name: docker
@@ -39,6 +45,7 @@
     state: directory
     mode: "0755"
 
+# 通过模板合并写入 daemon.json，保留各云厂商节点的 mirror / DNS 差异配置。
 - name: Configure Docker daemon
   ansible.builtin.template:
     src: daemon.json.j2
