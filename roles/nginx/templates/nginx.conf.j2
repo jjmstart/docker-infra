@@ -1,112 +1,43 @@
-# =============================================================================
-# Nginx 主配置文件 /etc/nginx/nginx.conf
-# 此文件是 Nginx 的入口配置，控制全局行为。
-# 站点/虚拟主机配置放在 conf.d/ 目录下，由本文件末尾的 include 指令引入。
-# =============================================================================
+# Nginx 主配置文件
+# - 全局运行参数放在本文件
+# - 站点/反向代理配置放在 /etc/nginx/conf.d/*.conf
 
-
-# -----------------------------------------------------------------------------
-# 全局块（main context）
-# 这里的指令作用于 Nginx 的整个运行生命周期
-# -----------------------------------------------------------------------------
-
-# 指定 Nginx worker 进程的运行用户（和用户组）
-# - 出于安全考虑，worker 不应以 root 运行，默认使用 nginx 用户
-# - 格式：user <用户> [<用户组>];
 user  nginx;
 
-# worker 进程数量
-# - auto：由 Nginx 自动检测 CPU 核心数并匹配，充分利用多核
-# - 也可手动指定，例如 worker_processes 4;
-# - 一般设置为 CPU 核心数或 auto
 worker_processes  auto;
 
-# 全局错误日志路径及日志级别
-# - 路径：/var/log/nginx/error.log
-# - 级别（由低到高）：debug | info | notice | warn | error | crit | alert | emerg
-# - notice：记录正常启动/退出等通知信息，生产环境常用 warn 或 error 减少噪音
 error_log  /var/log/nginx/error.log notice;
 
-# Nginx master 进程的 PID 文件路径
-# - 用于 nginx -s reload / nginx -s stop 等信号命令找到主进程
 pid        /run/nginx.pid;
 
 
-# -----------------------------------------------------------------------------
-# events 块
-# 控制 Nginx 的网络事件模型和连接处理能力
-# -----------------------------------------------------------------------------
+# 连接处理参数
 events {
-    # 每个 worker 进程允许同时建立的最大连接数
-    # - 整个 Nginx 的最大并发连接数 ≈ worker_processes × worker_connections
-    # - 1024 是保守值；高并发场景可调高到 4096 或 10240
-    # - 受限于系统的文件描述符上限（ulimit -n），调高前需同步调整系统参数
     worker_connections  1024;
 }
 
 
-# -----------------------------------------------------------------------------
-# http 块
-# 所有 HTTP/HTTPS 相关的配置都在此块内，是最核心的配置区域
-# -----------------------------------------------------------------------------
+# HTTP 通用参数
 http {
-    # 引入 MIME 类型映射表
-    # - 告诉 Nginx 不同文件扩展名对应的 Content-Type 响应头
-    # - 例如 .html → text/html，.jpg → image/jpeg
     include       /etc/nginx/mime.types;
 
-    # 默认 MIME 类型
-    # - 当文件扩展名在 mime.types 中找不到匹配时，使用此类型
-    # - application/octet-stream 会触发浏览器下载而非直接打开，是安全的兜底值
     default_type  application/octet-stream;
 
-    # 自定义访问日志格式，命名为 main
-    # 变量说明：
-    # - $remote_addr       客户端 IP 地址
-    # - $remote_user       HTTP Basic Auth 的用户名（未认证时为 -）
-    # - $time_local        服务器本地时间
-    # - $request           请求行，如 GET /index.html HTTP/1.1
-    # - $status            HTTP 响应状态码，如 200、404、502
-    # - $body_bytes_sent   响应体的字节数（不含响应头）
-    # - $http_referer      请求来源页面 URL（Referer 头）
-    # - $http_user_agent   客户端 User-Agent（浏览器/爬虫标识）
-    # - $http_x_forwarded_for  经过代理时的原始客户端 IP 链
+    # 统一访问日志格式；站点级日志可在 conf.d/ 中单独覆盖。
     log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
                       '$status $body_bytes_sent "$http_referer" '
                       '"$http_user_agent" "$http_x_forwarded_for"';
 
-    # 访问日志路径，使用上面定义的 main 格式
-    # - 可按虚拟主机在 conf.d/ 中单独覆盖，做到每站点独立日志
-    # - 高流量场景可设置 access_log off; 关闭以减少 I/O
     access_log  /var/log/nginx/access.log  main;
 
-    # 开启 sendfile 系统调用传输静态文件
-    # - 让内核直接将文件描述符内容发送到 socket，跳过用户态拷贝
-    # - 显著提升静态文件（图片、JS、CSS 等）的传输效率
-    # - 反向代理场景中效果有限，但开启无副作用
     sendfile        on;
 
-    # tcp_nopush：在 sendfile 开启时，尽量在一个 TCP 包中发送响应头和文件头部
-    # - 减少网络包数量，提升吞吐量
-    # - 通常与 sendfile on 配合使用
     #tcp_nopush     on;
 
-    # 客户端连接的 keep-alive 超时时间（秒）
-    # - 连接在空闲 65 秒后由服务端主动关闭
-    # - 适当调高可减少频繁握手开销；过高则会占用连接资源
-    # - 对于反向代理，还需关注 proxy_read_timeout 等上游超时配置
     keepalive_timeout  65;
 
-    # Gzip 压缩（默认关闭）
-    # - 开启后对文本类响应（HTML/CSS/JS/JSON）压缩传输，节省带宽
-    # - 建议同时配置：
-    #     gzip_types text/plain text/css application/json application/javascript;
-    #     gzip_min_length 1024;   # 小于 1KB 的响应不压缩（压缩反而变大）
-    #     gzip_comp_level 6;      # 压缩级别 1-9，6 是速度与压缩比的平衡点
+    # 当前保持关闭；后续如承载静态资源，可按站点评估开启 gzip。
     #gzip  on;
 
-    # 引入所有站点配置文件
-    # - conf.d/ 目录下的 *.conf 文件将被逐一加载
-    # - 每个文件通常定义一个或多个 server 块（虚拟主机）
     include /etc/nginx/conf.d/*.conf;
 }
