@@ -11,3 +11,15 @@
     dest: "{{ docker_root }}/backend/diary-site/docker-compose.yml"
     mode: "0644"
   notify: restart diary
+
+- name: Ensure Diary assets directory exists
+  ansible.builtin.file:
+    path: "{{ docker_root }}/backend/diary-site/assets"
+    state: directory
+    mode: "0755"
+
+- name: Copy Diary memos icon asset
+  ansible.builtin.copy:
+    src: "{{ role_path }}/assets/memos_icon.png"
+    dest: "{{ docker_root }}/backend/diary-site/assets/memos_icon.png"
+    mode: "0644"

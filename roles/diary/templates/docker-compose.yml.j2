@@ -24,6 +24,25 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  diary-assets:
+    image: nginx:1.27-alpine
+    container_name: diary-assets
+    restart: unless-stopped
+
+    ports:
+      - "{{ ansible_host }}:{{ diary_assets_port }}:80"
+
+    networks:
+      - {{ docker_network_name }}
+
+    volumes:
+      - ./assets:/usr/share/nginx/html:ro
+
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
 networks:
   {{ docker_network_name }}:
     external: true

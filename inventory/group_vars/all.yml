@@ -98,6 +98,8 @@ prometheus_host: "{{ hostvars[groups['monitor_nodes'][0]].ansible_host }}"
 
 # Diary 主机 IP，用于反向代理
 diary_host: "{{ hostvars[groups['diary_nodes'][0]].ansible_host }}"
+# 用于访问 Diary 的静态资源
+diary_assets_port: 5231 
 
 # Grafana 主机 IP，用于反向代理
 grafana_host: "{{ hostvars[groups['monitor_nodes'][0]].ansible_host }}"
