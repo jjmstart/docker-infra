@@ -4,6 +4,7 @@
 - import_playbook: setup_database.yml
 - import_playbook: setup_redis.yml
 - import_playbook: setup_app.yml
+- import_playbook: setup_diary.yml
 - import_playbook: setup_gateway.yml
 - import_playbook: setup_monitor.yml
 - import_playbook: setup_ops.yml

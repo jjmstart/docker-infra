@@ -6,9 +6,3 @@
     - role: jenkins
       tags: [jenkins, ops]
 
-- name: Deploy Diary
-  hosts: diary_nodes
-  become: true
-  roles:
-    - role: diary
-      tags: [diary, ops]
