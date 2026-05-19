@@ -35,4 +35,8 @@ Docs/.obsidian/
 vault/.vault-pass
 
 # ========= 个人学习规划 =========
-Docs/scheme/
+# 整个 Docs/scheme/ 目录默认不进 Git（求职策略备忘录、复盘清单等私密内容）
+# 仅 phase-1 架构演进路线图作为面试可见的工程素养证据，单文件白名单
+# 注意：必须用 Docs/scheme/* 而非 Docs/scheme/，否则目录级忽略会压制文件级 negation
+Docs/scheme/*
+!Docs/scheme/phase-1-architecture-upgrade.md
