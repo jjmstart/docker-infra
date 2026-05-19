@@ -1,6 +1,6 @@
 # /opt/docker-infra/Docs — 文档中心
 
-本目录是集群文档的统一入口，按用途分为五个子文件夹。V1.4 之后，`/opt/docker-infra` 是 Git/Ansible 控制仓库，Docs 跟随 Git 工作流管理：草案用于讨论，runbook 用于执行，architecture 记录已落地状态，retrospective 用于复盘，reviews 用于跨版本主题型横向复盘。
+本目录是集群文档的统一入口，按用途分为五个子文件夹。V1.4 之后，`/opt/docker-infra` 是 Git/Ansible 控制仓库，Docs 跟随 Git 工作流管理：草案用于讨论，runbook 用于执行，architecture 记录已落地状态，retrospective 用于复盘，reviews 用于跨版本主题型横向复盘。仓库根目录另有 [`CHANGELOG.md`](../CHANGELOG.md)，按 Keep a Changelog 格式聚合每个 `arch-vX.Y` tag 之间的变更，作为"版本级聚合"层与 commit 互补。
 
 ---
 
@@ -38,6 +38,7 @@
 | 我要开始执行某次架构演进，需要逐步操作指引        | [runbooks/](runbooks/) → 读对应版本手册（如 `v1.3-to-v1.4.md`）                   |
 | 演进刚完成，我想复盘做了什么、踩了什么坑、加深理解    | [retrospectives/](retrospectives/) → 读对应版本总结（如 `v1.2-retrospective.md`） |
 | 我想深入理解当前架构有哪些跨版本的隐性盲点         | [reviews/](reviews/) → 读对应主题审计（如 `v1.7-iac-completeness-audit.md`）      |
+| 我想快速扫读上一个 tag 到当前 HEAD 之间发生了什么 | [CHANGELOG.md](../CHANGELOG.md) → Unreleased 段 / 历史版本段                |
 
 
 ---
@@ -106,7 +107,7 @@
 | 文件                                                                                 | 触发版本 | 说明                                                          |
 | ---------------------------------------------------------------------------------- | ---- | ----------------------------------------------------------- |
 | [reviews/README.md](reviews/README.md)                                             | —    | 主题型横向复盘索引与撰写规范                                              |
-| [reviews/v1.7-iac-completeness-audit.md](reviews/v1.7-iac-completeness-audit.md)   | V1.7 | IaC 完整性审计：从 `mysql_source_delay` 倒推出的 11 个集群可复现性盲点（已规划 v1.8-v1.10 修复） |
+| [reviews/v1.7-iac-completeness-audit.md](reviews/v1.7-iac-completeness-audit.md)   | V1.7 | IaC 完整性审计：V1.7 → V1.8 准备期识别并处理的 21 个集群可复现性问题（10 个已修 + 11 个排进 v1.8-v1.10） |
 
 
 ---

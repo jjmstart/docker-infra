@@ -84,4 +84,4 @@
 
 | 文件 | 触发版本 | 主题 | 状态 |
 |------|----------|------|------|
-| [v1.7-iac-completeness-audit.md](v1.7-iac-completeness-audit.md) | V1.7 | IaC 完整性审计：从 `mysql_source_delay` 倒推出的 11 个集群可复现性盲点 | 已规划修复（v1.8-v1.10） |
+| [v1.7-iac-completeness-audit.md](v1.7-iac-completeness-audit.md) | V1.7 | IaC 完整性审计：V1.7 → V1.8 准备期识别并处理的 21 个集群可复现性问题（10 个已修 + 11 个排进 v1.8-v1.10） | 部分已修 + 剩余已规划 |
