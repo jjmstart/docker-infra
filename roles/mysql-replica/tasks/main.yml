@@ -19,7 +19,10 @@
     mode: "0644"
   notify: restart mysql
 
-# ── 以下 4 个 task 追加到现有 3 个 task 之后 ──
+# 从库恢复边界：
+# - 这里假设复制通道已经人工初始化过，数据目录中已有 replication metadata。
+# - 自动化只负责启动 Compose、等待 MySQL 就绪，并在复制线程停止时执行 START REPLICA。
+# - RESET REPLICA ALL / 重建复制通道属于破坏性操作，不放进 role，避免误接主库造成数据不一致。
 
 - name: Ensure MySQL replica compose stack is running
   community.docker.docker_compose_v2:
@@ -27,6 +30,7 @@
     state: present
     recreate: auto
 
+# docker compose 返回成功不代表 mysqld 已经完成初始化；后续复制检查前先等待 root 连接可用。
 - name: Wait for MySQL to accept connections
   ansible.builtin.shell: |
     cd {{ docker_root }}/backend/mysql
@@ -39,6 +43,7 @@
   changed_when: false
   no_log: true
 
+# 读取当前复制线程状态，供后续 when 判断是否需要拉起 IO / SQL 线程。
 - name: Read MySQL replica status
   ansible.builtin.shell: |
     cd {{ docker_root }}/backend/mysql
@@ -48,6 +53,7 @@
   changed_when: false
   no_log: true
 
+# 仅处理“复制通道存在但线程停止”的场景；如果 status 为空或元数据损坏，需要人工重建通道。
 - name: Start MySQL replica threads when stopped
   ansible.builtin.shell: |
     cd {{ docker_root }}/backend/mysql
