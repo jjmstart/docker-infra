@@ -26,6 +26,10 @@
 
 跨版本、按主题展开的**深度审计文档**：识别架构演进过程中遗留的盲点（如 IaC 完整性、HA 状态边界、CI/CD 韧性），分析根因，给出修复排期。与 `retrospectives/` 按版本组织不同，本目录按主题组织，触发时机是"发现盲点"而非"完成升级"。
 
+### [drills/](drills/) — 故障演练记录
+
+主动验证已有能力的**故障演练记录**。每份记录"演练目标 → 前置基线 → 演练步骤 → 实测观察 → 心得 → 待改进项"完整闭环。与 `reviews/` 识别理论盲点不同，本目录用线上实操验证实际表现（告警链路时延、故障摘除自动性、恢复操作可重复性），不绑定 Git tag。
+
 ### [sli-slo.md](sli-slo.md) — SLI/SLO 契约
 
 集群对外承诺哪些可靠性指标、用什么指标衡量、违约时如何兜底的**运营层契约文档**。月初回填实测样本，季度评估 SLO 目标值。横向运营契约，跨架构版本稳定。
@@ -42,6 +46,7 @@
 | 我要开始执行某次架构演进，需要逐步操作指引        | [runbooks/](runbooks/) → 读对应版本手册（如 `v1.3-to-v1.4.md`）                   |
 | 演进刚完成，我想复盘做了什么、踩了什么坑、加深理解    | [retrospectives/](retrospectives/) → 读对应版本总结（如 `v1.2-retrospective.md`） |
 | 我想深入理解当前架构有哪些跨版本的隐性盲点         | [reviews/](reviews/) → 读对应主题审计（如 `v1.7-iac-completeness-audit.md`）      |
+| 我想看某次故障演练的实测数据（告警时延、摘除耗时等）       | [drills/](drills/) → 读对应演练记录（如 `v1.7-gz02-app-failure.md`）             |
 | 我想了解集群对外承诺什么可靠性指标、当前实测多少          | [sli-slo.md](sli-slo.md) → 单文件运营契约                                   |
 | 我想快速扫读上一个 tag 到当前 HEAD 之间发生了什么 | [CHANGELOG.md](../CHANGELOG.md) → Unreleased 段 / 历史版本段                |
 
@@ -114,6 +119,15 @@
 | [reviews/README.md](reviews/README.md)                                             | —    | 主题型横向复盘索引与撰写规范                                              |
 | [reviews/v1.7-iac-completeness-audit.md](reviews/v1.7-iac-completeness-audit.md)   | V1.7 | IaC 完整性审计：V1.7 → V1.8 准备期识别并处理的 21 个集群可复现性问题（10 个已修 + 11 个排进 v1.8-v1.10） |
 | [reviews/v1.7-iac-ci-quality-gate-gap.md](reviews/v1.7-iac-ci-quality-gate-gap.md) | V1.7 | CI 链路缺少 IaC 自身质量门禁：Jenkins pre-merge 阶段补 `ansible-lint` / `gitleaks` / vault 加密状态校验 |
+
+
+### drills/
+
+
+| 文件                                                                       | 演练时架构版本 | 演练范围                                                          | 状态 |
+| ------------------------------------------------------------------------ | ------- | ------------------------------------------------------------- | -- |
+| [drills/README.md](drills/README.md)                                     | —       | 演练子体系索引与撰写规范                                                  | —  |
+| [drills/v1.7-gz02-app-failure.md](drills/v1.7-gz02-app-failure.md)       | V1.7    | gz-02 ruoyi-admin-2 故障下 Nginx upstream 摘除、blackbox 探测延迟、告警链路时延 | 计划中 |
 
 
 ### 单文件文档
