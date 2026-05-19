@@ -108,6 +108,7 @@
 | ---------------------------------------------------------------------------------- | ---- | ----------------------------------------------------------- |
 | [reviews/README.md](reviews/README.md)                                             | —    | 主题型横向复盘索引与撰写规范                                              |
 | [reviews/v1.7-iac-completeness-audit.md](reviews/v1.7-iac-completeness-audit.md)   | V1.7 | IaC 完整性审计：V1.7 → V1.8 准备期识别并处理的 21 个集群可复现性问题（10 个已修 + 11 个排进 v1.8-v1.10） |
+| [reviews/v1.7-iac-ci-quality-gate-gap.md](reviews/v1.7-iac-ci-quality-gate-gap.md) | V1.7 | CI 链路缺少 IaC 自身质量门禁：Jenkins pre-merge 阶段补 `ansible-lint` / `gitleaks` / vault 加密状态校验 |
 
 
 ---

@@ -85,3 +85,4 @@
 | 文件 | 触发版本 | 主题 | 状态 |
 |------|----------|------|------|
 | [v1.7-iac-completeness-audit.md](v1.7-iac-completeness-audit.md) | V1.7 | IaC 完整性审计：V1.7 → V1.8 准备期识别并处理的 21 个集群可复现性问题（10 个已修 + 11 个排进 v1.8-v1.10） | 部分已修 + 剩余已规划 |
+| [v1.7-iac-ci-quality-gate-gap.md](v1.7-iac-ci-quality-gate-gap.md) | V1.7 | CI 链路缺少 IaC 自身质量门禁：`ansible-lint` / `yamllint` / `gitleaks` / vault 加密状态校验作为 Jenkins pre-merge stage | 已识别，待修复 |
