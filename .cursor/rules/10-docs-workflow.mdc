@@ -14,7 +14,7 @@ alwaysApply: false
 
 ## 0. 文档体系概览
 
-`/opt/docker-infra/Docs/` 下只存放项目交付文档。V1.4 之后，Docs 跟随 Git 工作流管理：`proposals/` 记录未落地设计，`runbooks/` 记录执行路径，`architecture/` 记录已验证的最终状态，`retrospectives/` 记录演进复盘。
+`/opt/docker-infra/Docs/` 下只存放项目交付文档。V1.4 之后，Docs 跟随 Git 工作流管理：`proposals/` 记录未落地设计，`runbooks/` 记录执行路径，`architecture/` 记录已验证的最终状态，`retrospectives/` 记录单版本演进复盘，`reviews/` 记录跨版本主题型横向复盘。
 
 ```
 /opt/docker-infra/Docs/
@@ -30,9 +30,12 @@ alwaysApply: false
 ├── runbooks/
 │   ├── README.md                      ← 每次都要更新
 │   └── v1.3-to-v1.4.md
-└── retrospectives/
+├── retrospectives/
+│   ├── README.md                      ← 每次都要更新
+│   └── v1.4-retrospective.md
+└── reviews/
     ├── README.md                      ← 每次都要更新
-    └── v1.4-retrospective.md
+    └── v1.7-iac-completeness-audit.md ← 跨版本主题型横向复盘示例
 ```
 
 AI 协作规范、用户画像、文档写作规则等不属于交付文档，应放在 `.cursor/rules/`。
@@ -379,7 +382,72 @@ Q/A 形式，每个决策点一对 Q/A。Q 的格式：`**Q：为什么选择 X 
 
 ---
 
-## 6. README 索引文件更新规范
+## 6. reviews/v{触发版本}-{主题}.md — 主题型横向复盘撰写规范
+
+**用途**：沉淀跨版本、按主题展开的深度审计文档。触发时机不是"完成某次架构升级"，而是"在阅读代码 / 排障 / 评审过程中识别到一个之前没意识到的盲点"。这类文档通常涉及多个版本、多个组件，按主题（IaC 完整性、状态管理边界、HA 设计、CI/CD 韧性等）组织。
+
+**文件命名**：`v{触发版本}-{英文 slug}.md`，如 `v1.7-iac-completeness-audit.md`、`v1.10-cicd-resilience-audit.md`
+
+### 与其他文档的边界
+
+- 与 `retrospectives/`：retrospectives 按版本组织，记录单版本踩坑与决策；reviews 按主题组织，记录跨版本盲点与根因
+- 与 `proposals/`：proposals 面向未来，回答"下一步打算做什么"；reviews 面向当前，回答"当前架构现在有哪些隐性问题"
+- 一份 review 通常会催生若干 proposal；reviews 本身不写实施细节，只识别问题
+
+### 必须包含的章节（按顺序）
+
+#### 章节 1：文档元数据（文件开头，引用块格式）
+
+```markdown
+> **触发时间**：YYYY-MM-DD
+> **触发版本**：vX.Y
+> **触发点**：一句话说清楚从什么具体细节开始倒推的
+> **状态**：识别中 / 已规划修复 / 已部分修复 / 已完结
+> **关联文档**：链接到对应的 proposals / runbooks / retrospectives / phase-1 路线版本号
+```
+
+#### 章节 2：问题识别的起点
+
+讲清楚"我从哪个具体细节开始注意到这个问题"。这一节是**故事化**的，叙事性强，是面试中讲清楚"工程判断力"的核心素材。
+
+#### 章节 3：系统性盘点
+
+把同类问题在整个仓库里全部找出来。表格化，按严重程度排序（严重 / 中等 / 轻量），每条至少给出：现象、影响范围、严重等级。
+
+#### 章节 4：根因分析
+
+为什么这类盲点会存在？是设计阶段没考虑？是历史遗留？还是范围控制下的有意识取舍？根因要说清楚技术原理或决策过程，不能只写"配置错误"。
+
+#### 章节 5：修复方案与排期
+
+哪些必须修、哪些可以延后、哪些不修的理由。引用 `Docs/scheme/phase-1-architecture-upgrade.md` 路线版本号，避免与正式路线脱节。
+
+#### 章节 6：面试叙事点
+
+本篇 review 能在面试中怎么讲。和 retrospectives 的"技术决策 Q/A"风格一致，但更强调"如何识别盲点"而非"如何选型"。
+
+#### 章节 7：后续追踪
+
+修复落地后回填实际结果；新发现的同类盲点追加。状态字段随修复进度更新，但**不删除历史内容**，让追溯链路保留。
+
+### 写作禁止项
+
+- 不得写实施细节（属于 runbooks）
+- 不得重复 retrospective 的单版本踩坑内容
+- 不得凭印象提出盲点：所有盲点必须有具体文件 / 行号 / 命令依据
+- 不得包含明文密码、通知 token、webhook secret 等敏感信息
+
+### 触发时机判断
+
+| 场景 | 文档归属 |
+|------|---------|
+| 单次架构升级完成后总结踩坑 | `retrospectives/vX.Y-retrospective.md` |
+| 跨多个版本的设计盲点 / 隐性技术债 | `reviews/v{触发版本}-{主题}.md` |
+| 还未实施的下一步设计 | `proposals/vX.Z-topic.md` |
+
+---
+
+## 7. README 索引文件更新规范
 
 每次新增草案或发布新版本后，以下 README 文件按实际变化同步更新。
 
@@ -415,13 +483,21 @@ Q/A 形式，每个决策点一对 Q/A。Q 的格式：`**Q：为什么选择 X 
 | [vX.Z-retrospective.md](vX.Z-retrospective.md) | VX.Z | [完成年月] | [一句话摘要] |
 ```
 
+### reviews/README.md
+
+主题型横向复盘新增时，索引表格新增一行：
+
+```markdown
+| [v{触发版本}-{slug}.md](v{触发版本}-{slug}.md) | V{触发版本} | [主题说明] | [状态] |
+```
+
 ### Docs/README.md
 
-四个索引表格（proposals、architecture、runbooks、retrospectives）按实际情况新增对应行，architecture 表格同时将旧版标注修改。
+五个索引表格（proposals、architecture、runbooks、retrospectives、reviews）按实际情况新增对应行，architecture 表格同时将旧版标注修改。
 
 ---
 
-## 7. 全局写作规范
+## 8. 全局写作规范
 
 | 规范项 | 要求 |
 |--------|------|
@@ -435,11 +511,12 @@ Q/A 形式，每个决策点一对 Q/A。Q 的格式：`**Q：为什么选择 X 
 
 ---
 
-## 8. 快速参照：各文件夹定位一句话
+## 9. 快速参照：各文件夹定位一句话
 
 | 文件夹 | 定位 | 触发时机 |
 |--------|------|----------|
 | `proposals/` | 集群**下一步准备怎么变** | 架构演进开始前，用于讨论和评审 |
 | `architecture/` | 集群**现在是什么样的** | 每次架构状态变化时新增一版 |
 | `runbooks/` | 集群**怎么从 A 变成 B** | 每次执行架构演进时撰写 |
-| `retrospectives/` | 集群**演进过程中学到了什么** | 演进完成后复盘时撰写 |
+| `retrospectives/` | 集群**单次演进中学到了什么** | 演进完成后复盘时撰写 |
+| `reviews/` | 集群**当前架构有哪些跨版本的隐性盲点** | 阅读代码 / 排障 / 评审中识别到盲点时撰写 |

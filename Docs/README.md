@@ -1,6 +1,6 @@
 # /opt/docker-infra/Docs — 文档中心
 
-本目录是集群文档的统一入口，按用途分为四个子文件夹。V1.4 之后，`/opt/docker-infra` 是 Git/Ansible 控制仓库，Docs 跟随 Git 工作流管理：草案用于讨论，runbook 用于执行，architecture 记录已落地状态，retrospective 用于复盘。
+本目录是集群文档的统一入口，按用途分为五个子文件夹。V1.4 之后，`/opt/docker-infra` 是 Git/Ansible 控制仓库，Docs 跟随 Git 工作流管理：草案用于讨论，runbook 用于执行，architecture 记录已落地状态，retrospective 用于复盘，reviews 用于跨版本主题型横向复盘。
 
 ---
 
@@ -22,6 +22,10 @@
 
 每次演进完成后的**复盘文档**：演进成果、技术决策背后的原因（Q/A 形式）、踩坑记录与操作心得。适合在演进完成后回顾，或作为面试复盘材料。
 
+### [reviews/](reviews/) — 主题型横向复盘
+
+跨版本、按主题展开的**深度审计文档**：识别架构演进过程中遗留的盲点（如 IaC 完整性、HA 状态边界、CI/CD 韧性），分析根因，给出修复排期。与 `retrospectives/` 按版本组织不同，本目录按主题组织，触发时机是"发现盲点"而非"完成升级"。
+
 ---
 
 ## 如何选择要读哪份文档
@@ -33,6 +37,7 @@
 | 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.7.md`（最新版）                       |
 | 我要开始执行某次架构演进，需要逐步操作指引        | [runbooks/](runbooks/) → 读对应版本手册（如 `v1.3-to-v1.4.md`）                   |
 | 演进刚完成，我想复盘做了什么、踩了什么坑、加深理解    | [retrospectives/](retrospectives/) → 读对应版本总结（如 `v1.2-retrospective.md`） |
+| 我想深入理解当前架构有哪些跨版本的隐性盲点         | [reviews/](reviews/) → 读对应主题审计（如 `v1.7-iac-completeness-audit.md`）      |
 
 
 ---
@@ -93,6 +98,15 @@
 | [retrospectives/v1.5-retrospective.md](retrospectives/v1.5-retrospective.md) | V1.5 | 告警系统闭环与故障演练复盘                    |
 | [retrospectives/v1.6-retrospective.md](retrospectives/v1.6-retrospective.md) | V1.6 | 应用交付流水线全链路复盘                     |
 | [retrospectives/v1.7-retrospective.md](retrospectives/v1.7-retrospective.md) | V1.7 | 备份恢复闭环复盘（含 6 条踩坑，实测 RTO 34 秒）  |
+
+
+### reviews/
+
+
+| 文件                                                                                 | 触发版本 | 说明                                                          |
+| ---------------------------------------------------------------------------------- | ---- | ----------------------------------------------------------- |
+| [reviews/README.md](reviews/README.md)                                             | —    | 主题型横向复盘索引与撰写规范                                              |
+| [reviews/v1.7-iac-completeness-audit.md](reviews/v1.7-iac-completeness-audit.md)   | V1.7 | IaC 完整性审计：从 `mysql_source_delay` 倒推出的 11 个集群可复现性盲点（已规划 v1.8-v1.10 修复） |
 
 
 ---
