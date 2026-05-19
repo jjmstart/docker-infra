@@ -1,10 +1,12 @@
 ---
+# 准备 Ruoyi 运行目录，后续 .env 与 compose 文件都会渲染到这里。
 - name: Ensure Ruoyi directory exists
   ansible.builtin.file:
     path: "{{ docker_root }}/backend/ruoyi"
     state: directory
     mode: "0755"
 
+# 登录私有 Registry，确保目标节点后续可以拉取受保护的 Ruoyi 镜像。
 - name: Log in to private registry
   ansible.builtin.shell: |
     echo "{{ registry_auth_password }}" | \
@@ -13,6 +15,7 @@
   no_log: true
   when: not ansible_check_mode
 
+# 从私有 Registry 拉取指定版本镜像，tag 由 inventory/group_vars 控制。
 - name: Pull ruoyi image from registry
   ansible.builtin.shell: |
     docker pull {{ registry_host }}/{{ ruoyi_image_name }}:{{ ruoyi_image_tag }}
@@ -22,6 +25,7 @@
     'Pull complete' in docker_pull_result.stdout or
     'Downloaded newer image' in docker_pull_result.stdout
 
+# 渲染容器运行所需环境变量，敏感值通过 vault 变量注入。
 - name: Render Ruoyi env file
   ansible.builtin.template:
     src: .env.j2
@@ -29,6 +33,7 @@
     mode: "0600"
   notify: restart ruoyi
 
+# 渲染 Docker Compose 编排文件，变更后通知 handler 重启 Ruoyi。
 - name: Render Ruoyi compose file
   ansible.builtin.template:
     src: docker-compose.yml.j2
