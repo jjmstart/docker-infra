@@ -17,7 +17,7 @@ services:
       - SPRING_DATASOURCE_DRUID_MASTER_USERNAME=${DB_USER}
       - SPRING_DATASOURCE_DRUID_MASTER_PASSWORD=${DB_PASS}
       - SPRING_DATA_REDIS_SENTINEL_MASTER={{ redis_sentinel_master_name }}
-      - SPRING_DATA_REDIS_SENTINEL_NODES={% for host in redis_sentinel_hosts %}{{ hostvars[host].ansible_host }}:{{ redis_sentinel_port }}{% if not loop.last %},{% endif %}{% endfor %}
+      - SPRING_DATA_REDIS_SENTINEL_NODES={{ redis_sentinel_hosts | map('extract', hostvars, 'ansible_host') | map('regex_replace', '$', ':' ~ redis_sentinel_port) | join(',') }}
       - SPRING_DATA_REDIS_PASSWORD=${RUOYI_REDIS_PASS}
 
 networks:
