@@ -142,7 +142,7 @@
 | 文件                                           | 版本   | 叙事点数量 | 备注                                            |
 | -------------------------------------------- | ---- | ----- | --------------------------------------------- |
 | [narratives/README.md](narratives/README.md) | —    | —     | 面试叙事素材集索引与撰写规范                                |
-| [narratives/v1.7.md](narratives/v1.7.md)     | V1.7 | 4     | IaC 完整性 / CI 质量门禁 / 网关耦合演进时机 / 入口探测功能深度盲区（含一句话版、Q&A、工程原则） |
+| [narratives/v1.7.md](narratives/v1.7.md)     | V1.7 | 7     | IaC 完整性 / CI 质量门禁 / 网关耦合演进时机 / 入口探测功能深度盲区 / Jenkins 403 双层语义 / Prometheus reload inode 陷阱 / Jenkins CD 触发条件路径过滤（含一句话版、Q&A、工程原则） |
 
 
 ### 单文件文档
