@@ -1,5 +1,7 @@
-// docker-infra CD：拉代码 → Ansible 预检 →（仅 main）全量部署 → Prometheus 烟测 → 飞书通知。
+// docker-infra CD：拉代码 → 路径过滤（纯 docs 改动早退 NOT_BUILT）→ Ansible 预检 →（仅 main）全量部署 → Prometheus 烟测 → 飞书通知。
 // 镜像构建与推 Registry 在 ruoyi 仓库的独立 Jenkins Job；本文件只负责用 IMAGE_TAG 驱动 Ansible 下发。
+// 路径过滤之所以在 Pipeline 层而不是 SCM 层做：Jenkins Git plugin 在 webhook + ls-remote 轻量 polling 模式下只比对 HEAD SHA、不拉 commit 列表，
+// 所以 Job UI 的 Excluded Regions 静默失效（曾在 #66 验证踩坑，详见 Docs/narratives/v1.7.md §7）。
 pipeline {
   agent any
 
@@ -30,8 +32,55 @@ pipeline {
       }
     }
 
+    // 纯文档变更（Docs/、.cursor/、CHANGELOG.md、README.md、.gitignore）跳过后续部署。
+    // 比对基准：GIT_PREVIOUS_SUCCESSFUL_COMMIT，避免被中间失败构建带歪。
+    // fail-safe 原则：拿不到基准或 diff 为空时一律放行，宁可多跑一次也不要错过真改动。
+    stage('Path Filter') {
+      steps {
+        script {
+          def prevSha = env.GIT_PREVIOUS_SUCCESSFUL_COMMIT
+          if (!prevSha?.trim()) {
+            echo "GIT_PREVIOUS_SUCCESSFUL_COMMIT 未设置（首次构建或历史已清空），fail-safe 正常运行 Pipeline。"
+            return
+          }
+
+          def diffOut = sh(
+            script: "git diff --name-only ${prevSha} HEAD 2>/dev/null || true",
+            returnStdout: true
+          ).trim()
+
+          if (!diffOut) {
+            echo "git diff ${prevSha}..HEAD 输出为空（无变更或本地缺该 commit），fail-safe 正常运行 Pipeline。"
+            return
+          }
+
+          def files = diffOut.split('\n').findAll { it }
+          def docPatterns = [
+            ~/^Docs\/.*/,
+            ~/^\.cursor\/.*/,
+            ~/^CHANGELOG\.md$/,
+            ~/^README\.md$/,
+            ~/^\.gitignore$/,
+          ]
+          def nonDocFiles = files.findAll { f -> !docPatterns.any { p -> f ==~ p } }
+
+          if (nonDocFiles.isEmpty()) {
+            echo "本次 push 含 ${files.size()} 个改动文件，全部命中 docs 白名单，跳过部署:"
+            files.each { echo "  - ${it}" }
+            currentBuild.result = 'NOT_BUILT'
+            currentBuild.description = 'Skipped: docs-only change'
+            env.SKIP_PIPELINE = 'true'
+          } else {
+            echo "本次 push 含 ${nonDocFiles.size()} 个非 docs 改动，运行 Pipeline:"
+            nonDocFiles.each { echo "  - ${it}" }
+          }
+        }
+      }
+    }
+
     // 确认 Jenkins agent 上 ansible-playbook 可用，避免 credentials 阶段才失败
     stage('Verify Ansible') {
+      when { expression { env.SKIP_PIPELINE != 'true' } }
       steps {
         sh '''
           set -eu
@@ -43,6 +92,7 @@ pipeline {
 
     // 任意分支都跑：dry-run，不写远端；尽早发现 playbook / vault / 模板问题
     stage('Ansible Check') {
+      when { expression { env.SKIP_PIPELINE != 'true' } }
       steps {
         withCredentials([
           sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'ANSIBLE_KEY', usernameVariable: 'ANSIBLE_USER'),
@@ -65,9 +115,12 @@ pipeline {
     // 仅 main：真实执行 site.yml，将 ruoyi 镜像版本写入各 app 节点并 compose 滚动
     stage('Deploy') {
       when {
-        anyOf {
-          branch 'main'
-          expression { env.GIT_BRANCH == 'origin/main' || env.BRANCH_NAME == 'main' }
+        allOf {
+          expression { env.SKIP_PIPELINE != 'true' }
+          anyOf {
+            branch 'main'
+            expression { env.GIT_BRANCH == 'origin/main' || env.BRANCH_NAME == 'main' }
+          }
         }
       }
       steps {
@@ -92,9 +145,12 @@ pipeline {
     // 查询地址需与当前监控主节点（如 gz-01）一致，变更节点时请同步架构快照与此处或改为注入变量
     stage('Smoke Test') {
       when {
-        anyOf {
-          branch 'main'
-          expression { env.GIT_BRANCH == 'origin/main' || env.BRANCH_NAME == 'main' }
+        allOf {
+          expression { env.SKIP_PIPELINE != 'true' }
+          anyOf {
+            branch 'main'
+            expression { env.GIT_BRANCH == 'origin/main' || env.BRANCH_NAME == 'main' }
+          }
         }
       }
       steps {
