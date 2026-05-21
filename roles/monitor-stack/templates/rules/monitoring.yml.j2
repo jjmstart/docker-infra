@@ -1,6 +1,8 @@
 groups:
+  # 监控链路自监控：确认 Prometheus 自身、Alertmanager 与 blackbox-exporter 可用。
   - name: monitoring
     rules:
+      # 任意 scrape target 变为 down 都先给 warning，避免 exporter/网络问题静默。
       - alert: PrometheusTargetDown
         expr: up == 0
         for: 2m
@@ -10,6 +12,7 @@ groups:
           summary: "Prometheus target down"
           description: "{{ '{{' }} $labels.job {{ '}}' }} / {{ '{{' }} $labels.instance {{ '}}' }} 连续 2 分钟不可采集。"
 
+      # Alertmanager 是告警发送链路的关键节点，失败时按 critical 处理。
       - alert: AlertmanagerDown
         expr: probe_success{job="blackbox-http",service="alertmanager"} == 0
         for: 2m
@@ -19,6 +22,7 @@ groups:
           summary: "Alertmanager 不可达"
           description: "Prometheus 无法通过 blackbox 探测访问 Alertmanager。"
 
+      # blackbox-exporter 不可采集时，入口探测类告警会整体失真。
       - alert: BlackboxExporterDown
         expr: up{job="blackbox-http"} == 0
         for: 2m

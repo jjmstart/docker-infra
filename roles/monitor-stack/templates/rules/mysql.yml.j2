@@ -1,6 +1,8 @@
 groups:
+  # MySQL 告警覆盖主库可采集性、复制线程状态，以及两类从库的复制延迟。
   - name: mysql
     rules:
+      # 主库 exporter 不可采集时无法判断写入侧健康，直接按 critical 处理。
       - alert: MySQLMasterDown
         expr: mysql_up{instance="{{ mysql_master_host }}:{{ mysqld_exporter_port }}"} == 0
         for: 1m
@@ -10,6 +12,7 @@ groups:
           summary: "MySQL Master 不可采集"
           description: "gz-03 MySQL Master 不可采集或 mysqld-exporter 异常。"
 
+      # IO/SQL 任一复制线程停止都会破坏主从一致性，需要优先排查。
       - alert: MySQLReplicationDown
         expr: mysql_slave_status_slave_io_running == 0 or mysql_slave_status_slave_sql_running == 0
         for: 1m
@@ -19,6 +22,7 @@ groups:
           summary: "MySQL 复制线程异常"
           description: "{{ '{{' }} $labels.instance {{ '}}' }} MySQL 复制 IO 或 SQL 线程异常。"
 
+      # 实时从库承担读扩展与同城容灾，延迟阈值要求更严格。
       - alert: MySQLRealtimeReplicaLagHigh
         expr: mysql_slave_status_seconds_behind_master{instance="{{ mysql_replica_realtime_host }}:{{ mysqld_exporter_port }}"} > {{ alert_mysql_realtime_replica_lag_seconds_warning }}
         for: 2m
@@ -28,6 +32,7 @@ groups:
           summary: "MySQL 实时从库复制延迟偏高"
           description: "gz-02 Slave1 复制延迟超过 {{ alert_mysql_realtime_replica_lag_seconds_warning }} 秒。"
 
+      # 延迟从库设计目标是约 3600s 误操作缓冲，阈值保留余量避免正常延迟误报。
       - alert: MySQLDelayReplicaLagAbnormal
         expr: mysql_slave_status_seconds_behind_master{instance="{{ mysql_replica_delay_host }}:{{ mysqld_exporter_port }}"} > {{ alert_mysql_delay_replica_lag_seconds_warning }}
         for: 5m

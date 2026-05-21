@@ -1,20 +1,25 @@
 global:
+  # 15s 对当前小规模集群足够精细，同时不会给各节点 exporter 带来明显压力。
   scrape_interval: 15s
 
 alerting:
+  # 告警统一交给 bj-01 Alertmanager 聚合、分组后再转发到飞书。
   alertmanagers:
     - static_configs:
         - targets:
             - '{{ alertmanager_host }}:{{ alertmanager_port }}'
 
 rule_files:
+  # rules 目录由 Ansible 下发，按主题拆分 node/mysql/blackbox/monitoring 告警。
   - "rules/*.yml"
 
 scrape_configs:
+  # Prometheus 自身指标，用于确认规则评估、TSDB 和抓取链路健康。
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
 
+  # 所有 exporter_nodes 都纳入主机指标采集；节点清单来自 inventory 分组。
   - job_name: 'node-exporter'
     static_configs:
       - targets:
@@ -22,6 +27,7 @@ scrape_configs:
           - '{{ hostvars[host].ansible_host }}:{{ node_exporter_port }}'
 {% endfor %}
 
+  # MySQL 指标按主库、实时从库、延迟从库打 role 标签，便于告警和面板区分。
   - job_name: 'mysqld-exporter'
     static_configs:
       - targets: ['{{ mysql_master_host }}:{{ mysqld_exporter_port }}']
@@ -37,6 +43,7 @@ scrape_configs:
           instance: 'bj-01'
           role: 'slave2'
 
+  # blackbox-http 从监控节点视角探测公网入口和关键内部健康端点。
   - job_name: 'blackbox-http'
     metrics_path: /probe
     params:
@@ -46,44 +53,53 @@ scrape_configs:
       - targets:
           - https://ruoyi.jjmstart.com
         labels:
+          # 核心业务入口不可用时按 critical 处理，直接影响用户访问。
           service: ruoyi
           severity: critical
 
       - targets:
           - https://diary.jjmstart.com
         labels:
+          # Diary 属于辅助服务，先按 warning 纳入入口可用性观察。
           service: diary
           severity: warning
 
       - targets:
           - https://jenkins.jjmstart.com
         labels:
+          # Jenkins 影响交付链路，但不直接承载线上业务请求。
           service: jenkins
           severity: warning
 
       - targets:
           - https://monitor.jjmstart.com
         labels:
+          # Grafana 是观测入口；Prometheus/Alertmanager 另有内部健康探测。
           service: grafana
           severity: warning
 
       - targets:
           - http://{{ prometheus_host }}:{{prometheus_port}}/-/healthy
         labels:
+          # Prometheus 自身不可用会导致采集与规则评估中断。
           service: prometheus
           severity: critical
 
       - targets:
           - http://{{ alertmanager_host }}:{{ alertmanager_port }}/-/healthy
         labels:
+          # Alertmanager 不可用时告警无法聚合和转发，按 critical 处理。
           service: alertmanager
           severity: critical
 
 
     relabel_configs:
+      # 将原始 target URL 写入 __param_target，交给 blackbox-exporter 实际探测。
       - source_labels: [__address__]
         target_label: __param_target
+      # instance 保留真实探测目标，告警消息中能直接看到失败 URL。
       - source_labels: [__param_target]
         target_label: instance
+      # Prometheus 实际抓取的是 blackbox-exporter，由它再访问 __param_target。
       - target_label: __address__
         replacement: blackbox-exporter:{{ blackbox_exporter_port }}

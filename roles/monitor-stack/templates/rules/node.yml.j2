@@ -1,6 +1,8 @@
 groups:
+  # 主机基础资源告警：所有 exporter_nodes 通过 node-exporter 暴露这些指标。
   - name: node
     rules:
+      # node-exporter 不可采集通常意味着节点、Docker 网络或 exporter 本身异常。
       - alert: NodeDown
         expr: up{job="node-exporter"} == 0
         for: 2m
@@ -10,6 +12,7 @@ groups:
           summary: "节点不可达"
           description: "{{ '{{' }} $labels.instance {{ '}}' }} 的 node-exporter 连续 2 分钟不可采集。"
 
+      # 根分区空间耗尽会直接影响容器日志、数据库写入和 Compose 服务重启。
       - alert: NodeDiskSpaceLow
         expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay",mountpoint="/"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay",mountpoint="/"}) * 100 < {{ alert_disk_free_percent_critical }}
         for: 5m
@@ -19,6 +22,7 @@ groups:
           summary: "根分区可用空间不足"
           description: "{{ '{{' }} $labels.instance {{ '}}' }} 根分区可用空间低于 {{ alert_disk_free_percent_critical }}%。"
 
+      # inode 耗尽时即使磁盘还有空间也无法创建新文件，常见于小文件/日志堆积。
       - alert: NodeInodeLow
         expr: (node_filesystem_files_free{fstype!~"tmpfs|overlay",mountpoint="/"} / node_filesystem_files{fstype!~"tmpfs|overlay",mountpoint="/"}) * 100 < {{ alert_inode_free_percent_warning }}
         for: 10m
@@ -28,6 +32,7 @@ groups:
           summary: "根分区 inode 可用率偏低"
           description: "{{ '{{' }} $labels.instance {{ '}}' }} 根分区 inode 可用率低于 {{ alert_inode_free_percent_warning }}%。"
 
+      # MemAvailable 比 free 更贴近日常排障中“还能给应用使用多少内存”的判断。
       - alert: NodeMemoryLow
         expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < {{ alert_memory_available_percent_warning }}
         for: 10m
@@ -37,6 +42,7 @@ groups:
           summary: "节点可用内存偏低"
           description: "{{ '{{' }} $labels.instance {{ '}}' }} 可用内存低于 {{ alert_memory_available_percent_warning }}%。"
 
+      # 使用 5 分钟平均非 idle CPU，减少瞬时峰值导致的误报。
       - alert: NodeCPUHigh
         expr: (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) * 100 > {{ alert_cpu_usage_percent_warning }}
         for: 10m

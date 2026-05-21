@@ -1,23 +1,28 @@
 services:
+  # Prometheus 负责抓取 exporter/blackbox 指标、评估 rules，并把告警发送到 Alertmanager。
   prometheus:
     image: prom/prometheus:v2.53.0
     container_name: prometheus
     ports:
+      # 只绑定到当前节点的 Tailscale IP，监控入口由 Nginx 暴露给公网。
       - "{{ ansible_host }}:{{ prometheus_port }}:9090"
     restart: unless-stopped
 
     networks:
       - default
+      # 接入 global_gateway，保持监控栈与其他 Compose 栈的统一网络边界。
       - {{ docker_network_name }}
 
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # TSDB 数据持久化到宿主机，容器重建后保留历史指标。
       - ./prometheus/data:/prometheus
       - ./prometheus/rules:/etc/prometheus/rules:ro
 
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      # 允许通过 /-/reload 热加载配置，避免每次规则调整都重启容器。
       - '--web.enable-lifecycle'
 
     deploy:
@@ -31,6 +36,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Grafana 提供可视化面板，数据源配置在 UI/持久化目录中保存。
   grafana:
     image: grafana/grafana:11.0.0
     container_name: grafana
@@ -57,6 +63,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # blackbox-exporter 由 Prometheus 调用，用于从监控节点视角主动探测 HTTP/TCP 目标。
   blackbox-exporter:
     image: {{ blackbox_exporter_image }}
     container_name: blackbox-exporter
@@ -79,5 +86,6 @@ services:
         max-file: "3"
 
 networks:
+  # global_gateway 由基础设施 role 预先创建；这里仅声明复用，不由 compose 自动创建。
   {{ docker_network_name }}:
     external: true
