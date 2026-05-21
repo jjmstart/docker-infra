@@ -6,4 +6,4 @@
 
 | 文件 | 版本 | 叙事点数量 | 备注 |
 |------|------|-----------|------|
-| [v1.7.md](v1.7.md) | V1.7 | 7 | IaC 完整性 / CI 质量门禁 / 网关耦合演进时机 / 入口探测功能深度盲区 / Jenkins 403 双层语义 / Prometheus reload inode 陷阱 / Jenkins CD 触发条件路径过滤 |
+| [v1.7.md](v1.7.md) | V1.7 | 7 | IaC 完整性 / CI 质量门禁 / 网关耦合演进时机 / 入口探测功能深度盲区 / Jenkins 403 双层语义 / Prometheus reload inode 陷阱 / Jenkins CD 路径过滤层级试错 |
