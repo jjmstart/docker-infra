@@ -42,3 +42,10 @@
     - blackbox.yml.j2
     - monitoring.yml.j2
   notify: reload prometheus
+
+- name: Ensure monitor stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_root }}/monitor"
+    state: present
+    recreate: auto
+  when: not ansible_check_mode

@@ -1,12 +1,12 @@
 ---
-- name: reload prometheus
-  ansible.builtin.command:
-    cmd: docker exec prometheus wget -qO- --post-data="" http://127.0.0.1:9090/-/reload
-  changed_when: false
-
 - name: restart monitor stack
   community.docker.docker_compose_v2:
     project_src: "{{ docker_root }}/monitor"
     state: present
     recreate: auto
   when: not ansible_check_mode
+
+- name: reload prometheus
+  ansible.builtin.command:
+    cmd: docker exec prometheus wget -qO- --post-data="" http://127.0.0.1:9090/-/reload
+  changed_when: false
