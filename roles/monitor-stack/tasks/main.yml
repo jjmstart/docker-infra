@@ -22,7 +22,7 @@
     src: prometheus.yml.j2
     dest: "{{ docker_root }}/monitor/prometheus/prometheus.yml"
     mode: "0644"
-  notify: reload prometheus
+  notify: restart prometheus
 
 - name: Render blackbox config
   ansible.builtin.template:
@@ -41,7 +41,7 @@
     - mysql.yml.j2
     - blackbox.yml.j2
     - monitoring.yml.j2
-  notify: reload prometheus
+  notify: reload prometheus rules
 
 - name: Ensure monitor stack is running
   community.docker.docker_compose_v2:

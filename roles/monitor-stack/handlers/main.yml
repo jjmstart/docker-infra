@@ -6,7 +6,18 @@
     recreate: auto
   when: not ansible_check_mode
 
-- name: reload prometheus
+# 仅给 rules/ 目录改动用：rules 是目录 bind mount，热 reload 能感知到新文件。
+- name: reload prometheus rules
   ansible.builtin.command:
     cmd: docker exec prometheus wget -qO- --post-data="" http://127.0.0.1:9090/-/reload
   changed_when: false
+
+# prometheus.yml 是单文件 bind mount，ansible template 的"写临时文件 → atomic rename"
+# 会换 inode；容器仍持有旧 inode，热 reload 读到的还是旧内容。主配置改动必须重建容器
+# 让 mount 跟随新 inode，否则 reload 永远不生效（参见 Docs/narratives/v1.7.md 叙事点 #6）。
+- name: restart prometheus
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_root }}/monitor"
+    services: [prometheus]
+    state: restarted
+  when: not ansible_check_mode
