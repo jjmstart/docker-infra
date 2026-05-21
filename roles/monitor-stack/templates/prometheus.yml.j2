@@ -64,8 +64,12 @@ scrape_configs:
           service: diary
           severity: warning
 
+      # Jenkins 根路径对匿名访问返回 HTTP 403 + HTML <meta refresh> 跳转 /login——
+      # 浏览器会解析 body 跟随跳转，但 blackbox 只看协议层状态码，403 不在 [200,301,302]
+      # 白名单内 → probe_success=0 持续误报。改探 /login（公开登录页，匿名 GET 直接 200），
+      # 语义等价于"Jenkins 进程活 + Nginx 反代通 + TLS 有效"。
       - targets:
-          - https://jenkins.jjmstart.com
+          - https://jenkins.jjmstart.com/login
         labels:
           # Jenkins 影响交付链路，但不直接承载线上业务请求。
           service: jenkins
