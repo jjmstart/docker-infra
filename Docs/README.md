@@ -124,6 +124,7 @@
 | [reviews/README.md](reviews/README.md)                                             | —    | 主题型横向复盘索引与撰写规范                                              |
 | [reviews/v1.7-iac-completeness-audit.md](reviews/v1.7-iac-completeness-audit.md)   | V1.7 | IaC 完整性审计：V1.7 → V1.8 准备期识别并处理的 21 个集群可复现性问题（10 个已修 + 11 个排进 v1.8-v1.10） |
 | [reviews/v1.7-iac-ci-quality-gate-gap.md](reviews/v1.7-iac-ci-quality-gate-gap.md) | V1.7 | CI 链路缺少 IaC 自身质量门禁：Jenkins pre-merge 阶段补 `ansible-lint` / `gitleaks` / vault 加密状态校验 |
+| [reviews/v1.7-ingress-probe-functional-depth-gap.md](reviews/v1.7-ingress-probe-functional-depth-gap.md) | V1.7 | 入口探测的功能深度盲区：从一次 Ruoyi 后端 5 天无人感知的故障倒推 6 个 blackbox 探测目标，三类盲区按 ROI 排进 v1.8/v1.9/v2.0 |
 
 
 ### drills/
@@ -141,7 +142,7 @@
 | 文件                                           | 版本   | 叙事点数量 | 备注                                            |
 | -------------------------------------------- | ---- | ----- | --------------------------------------------- |
 | [narratives/README.md](narratives/README.md) | —    | —     | 面试叙事素材集索引与撰写规范                                |
-| [narratives/v1.7.md](narratives/v1.7.md)     | V1.7 | 3     | IaC 完整性 / CI 质量门禁 / 网关耦合演进时机（含一句话版、Q&A、工程原则） |
+| [narratives/v1.7.md](narratives/v1.7.md)     | V1.7 | 4     | IaC 完整性 / CI 质量门禁 / 网关耦合演进时机 / 入口探测功能深度盲区（含一句话版、Q&A、工程原则） |
 
 
 ### 单文件文档
