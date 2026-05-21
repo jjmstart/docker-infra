@@ -44,6 +44,8 @@
 ### Fixed
 
 - `roles/nginx/handlers/main.yml` 修复 reload 在 compose 重启前执行的 handler 顺序 bug (`22b2306`)
+- `roles/monitor-stack/templates/prometheus.yml.j2` Jenkins 探测目标 `/` → `/login`，绕开 Jenkins 匿名根路径返回 HTTP 403 + HTML meta refresh 的双层语义导致 blackbox 持续误报（自 2026-05-16 起 5 天）(`49a644e`)
+- `roles/monitor-stack/handlers/main.yml` 拆分 reload handler：rules 改动继续热 reload，prometheus 主配置改动改为重建容器；修复 Docker 单文件 bind mount + ansible template atomic rename + reload 三件叠加导致的 6 版本潜伏失效（自 v1.5 引入监控栈起，所有 `prometheus.yml.j2` 改动从未真正进容器）(`8b60f5b`)
 
 ### Removed
 
@@ -59,6 +61,7 @@
 - `jenkins-build/Dockerfile` 注释补全 (`5a2da66`)
 - `roles/jenkins/`、`roles/ruoyi/`、`roles/mysql-replica/`、`roles/docker-daemon/` 内 task / template / handler 注释维护 (`4bf4fd0`, `a7f6800`, `d18afc7`, `e49918a`, `fdc2ae0`)
 - `inventory/group_vars/all.yml` 注释更新 (`57a2ef3`)
+- `Docs/narratives/v1.7.md` 新增叙事点 #5（Jenkins 探测 403 + meta refresh 双层语义）与 #6（prometheus reload 6 版本潜伏失效 → IaC 验证心智）(`6e8283c`)
 
 ---
 
