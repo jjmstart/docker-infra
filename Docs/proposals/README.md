@@ -9,3 +9,4 @@
 | [v1.5-alerting.md](v1.5-alerting.md) | V1.5 | 告警系统：Prometheus + Alertmanager + 手机通知 | 已落地 |
 | [v1.6-pipeline.md](v1.6-pipeline.md) | V1.6 | 应用自动化交付流水线：私有 Registry + CI/CD 解耦 + Smoke Test | 已落地 |
 | [v1.7-backup.md](v1.7-backup.md) | V1.7 | 备份恢复最小闭环：mysqldump + OSS 上传 + bj-01 恢复演练 + RPO/RTO 说明 | 已落地 |
+| [v1.9-proxysql-ha.md](v1.9-proxysql-ha.md) | V1.9 | ProxySQL HA 化：Cluster 双实例 + Admin SQL runtime 同步 + 应用 JDBC 多端点 | 草案占位（PoC 待验证） |
