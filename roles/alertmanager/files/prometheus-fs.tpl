@@ -11,4 +11,4 @@
 开始时间：{{$v.startsAt}}
 故障目标：{{$v.labels.instance}}
 **{{$v.annotations.description}}**{{end}}{{ end }}
-{{ $urimsg:=""}}{{ range $key,$value:=.commonLabels }}{{$urimsg =  print $urimsg $key "%3D%22" $value "%22%2C" }}{{end}}[*** 点我屏蔽该告警]({{$var}}/#/silences/new?filter=%7B{{SplitString $urimsg 0 -3}}%7D)
+{{ $urimsg:=""}}{{ range $key,$value:=.commonLabels }}{{$urimsg =  print $urimsg $key "%3D%22" $value "%22%2C" }}{{end}}[**▶ 点我屏蔽该告警**]({{$var}}/#/silences/new?filter=%7B{{SplitString $urimsg 0 -3}}%7D)
