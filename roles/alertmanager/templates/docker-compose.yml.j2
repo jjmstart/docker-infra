@@ -1,6 +1,6 @@
 services:
   alertmanager:
-    image: prom/alertmanager:v0.27.0
+    image: {{ alertmanager_image }}
     container_name: alertmanager
     restart: unless-stopped
 

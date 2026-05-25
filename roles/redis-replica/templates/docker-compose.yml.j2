@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:7.2-alpine
+    image: {{ redis_image }}
     container_name: redis
     restart: always
 
@@ -26,7 +26,7 @@ services:
       - {{ docker_network_name }}
 
   sentinel:
-    image: redis:7.2-alpine
+    image: {{ redis_image }}
     container_name: redis-sentinel
     restart: always
     network_mode: host

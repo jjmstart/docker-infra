@@ -1,6 +1,6 @@
 services:
   mysqld-exporter:
-    image: prom/mysqld-exporter:v0.15.1
+    image: {{ mysqld_exporter_image }}
     container_name: mysqld-exporter
     restart: unless-stopped
 

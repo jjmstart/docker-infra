@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: mysql:8.0
+    image: {{ mysql_image }}
     container_name: mysql
     restart: {{ mysql_restart_policy | default('always') }}
 

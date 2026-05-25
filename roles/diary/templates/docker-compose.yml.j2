@@ -1,6 +1,6 @@
 services:
   diary:
-    image: neosmemo/memos:0.26
+    image: {{ memos_image }}
     container_name: diary
     restart: unless-stopped
 
@@ -25,7 +25,7 @@ services:
         max-file: "3"
 
   diary-assets:
-    image: nginx:1.27-alpine
+    image: {{ nginx_image }}
     container_name: diary-assets
     restart: unless-stopped
 

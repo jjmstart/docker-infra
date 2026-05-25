@@ -1,6 +1,6 @@
 services:
   proxysql:
-    image: proxysql/proxysql:latest
+    image: {{ proxysql_image }}
     container_name: proxysql
     restart: always
 

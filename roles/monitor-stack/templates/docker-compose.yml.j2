@@ -1,7 +1,7 @@
 services:
   # Prometheus 负责抓取 exporter/blackbox 指标、评估 rules，并把告警发送到 Alertmanager。
   prometheus:
-    image: prom/prometheus:v2.53.0
+    image: {{ prometheus_image }}
     container_name: prometheus
     ports:
       # 只绑定到当前节点的 Tailscale IP，监控入口由 Nginx 暴露给公网。
@@ -38,7 +38,7 @@ services:
 
   # Grafana 提供可视化面板，数据源配置在 UI/持久化目录中保存。
   grafana:
-    image: grafana/grafana:11.0.0
+    image: {{ grafana_image }}
     container_name: grafana
     restart: unless-stopped
 

@@ -2,7 +2,7 @@
 # 意图：Jenkins 跑在自定义镜像上，仅本机回环暴露 UI/agent，同时经 Tailscale 地址供内网访问。
 services:
   jenkins:
-    image: jenkins-ansible:latest
+    image: {{ jenkins_image }}
     container_name: jenkins
     restart: unless-stopped
 

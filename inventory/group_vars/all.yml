@@ -80,6 +80,25 @@ registry_image_tag: "registry:2"
 ruoyi_image_name: "ruoyi"
 ruoyi_image_tag: "latest"
 
+# ── 组件镜像版本 (V1.7 收敛) ──────────────────────────────────────────────────
+# 历史 role 模板内硬编码的镜像 tag 统一收敛至此，命名沿用 V1.7 已落地的
+# `<component>_image` 约定（参考 prometheus_alert_image / blackbox_exporter_image）；
+# 同 role 内多次出现的同一镜像（redis master+sentinel、mysql 主从、nginx 入口+
+# diary-assets）共用同一变量，避免升级时漏改其中一处导致协议版本错配。
+# registry_image_tag / ruoyi_image_* 命名风格不同但被 Jenkins/runbook 多处引用，
+# 留作存量，v1.10 CI/CD IaC 化时顺带统一。
+prometheus_image:      "prom/prometheus:v2.53.0"
+grafana_image:         "grafana/grafana:11.0.0"
+alertmanager_image:    "prom/alertmanager:v0.27.0"
+node_exporter_image:   "prom/node-exporter:v1.8.0"
+mysqld_exporter_image: "prom/mysqld-exporter:v0.15.1"
+nginx_image:           "nginx:1.27-alpine"
+redis_image:           "redis:7.2-alpine"
+mysql_image:           "mysql:8.0"
+proxysql_image:        "proxysql/proxysql:latest"
+memos_image:           "neosmemo/memos:0.26"
+jenkins_image:         "jenkins-ansible:latest"
+
 # ── MySQL 逻辑备份 (V1.7) ──────────────────────────────────────────────────────────────
 # 由 playbooks/setup_backup.yml 下发至 db_master_nodes / ops_nodes：mysqldump、本地轮转、ossutil 上传 OSS
 mysql_backup_database: "ry-vue"
