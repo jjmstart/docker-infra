@@ -29,9 +29,11 @@
     mode: "0644"
   notify: restart alertmanager stack
 
+# 确保 alertmanager stack 已启动并应用最新配置
 - name: Apply pending alertmanager stack changes
   ansible.builtin.meta: flush_handlers
 
+# 将 prometheus-alert feishu template 写入运行时 DB
 - name: Apply prometheus-alert feishu template to runtime DB
   ansible.builtin.shell:
     cmd: |
