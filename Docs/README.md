@@ -111,6 +111,7 @@
 | [retrospectives/README.md](retrospectives/README.md)                         | —    | 总结列表索引                           |
 | [retrospectives/v1.1-retrospective.md](retrospectives/v1.1-retrospective.md) | V1.1 | 监控迁移复盘                           |
 | [retrospectives/v1.2-retrospective.md](retrospectives/v1.2-retrospective.md) | V1.2 | MySQL 高可用升级复盘（含故障演练 RTO 实测）      |
+| [retrospectives/v1.3-retrospective.md](retrospectives/v1.3-retrospective.md) | V1.3 | Git 化管理层复盘（事后补写，记录过渡版本性质与设计盲点） |
 | [retrospectives/v1.4-retrospective.md](retrospectives/v1.4-retrospective.md) | V1.4 | Ansible + Jenkins CI/CD 统一配置管理复盘 |
 | [retrospectives/v1.5-retrospective.md](retrospectives/v1.5-retrospective.md) | V1.5 | 告警系统闭环与故障演练复盘                    |
 | [retrospectives/v1.6-retrospective.md](retrospectives/v1.6-retrospective.md) | V1.6 | 应用交付流水线全链路复盘                     |
