@@ -11,6 +11,8 @@ route:
 receivers:
   - name: feishu
     webhook_configs:
+      # fsurl 必须 urlencode：飞书 webhook URL 含 ":" "/" 等保留字符，
+      # 不编码会被 prometheus-alert 解析 query 时截断，导致告警静默丢失
       - url: "http://prometheus-alert:{{ prometheus_alert_port }}/prometheusalert?type=fs&tpl=prometheus-fs&fsurl={{ alerting_feishu_webhook_url | urlencode }}"
         send_resolved: true
 
