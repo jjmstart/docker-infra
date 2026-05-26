@@ -20,12 +20,12 @@
 
 ## [Unreleased] — V1.7 → V1.8 准备期
 
-为下一版本 `arch-v1.8` 准备的累积变更。当前路线图见 `Docs/scheme/phase-1-architecture-upgrade.md`：V1.8 主题为"基础可复现性修复（Docker 网络 + MySQL 数据层 bootstrap）"。
+为下一版本 `arch-v1.8` 准备的累积变更。当前路线图见 `Docs/scheme/phase-1-architecture-upgrade.md`：V1.8 主题为"Dead Man's Switch — 告警出口冗余"（DMS 心跳路由到外部 SaaS，覆盖 Alertmanager / 链路 / 飞书侧三层失效域）；原"基础可复现性修复"主题顺延至 V1.9。
 
 ### Added
 
 - 新增 `Docs/reviews/` 文档子体系，承载跨版本主题型横向复盘 (`d4ffcc4`)
-- 首篇审计 `Docs/reviews/v1.7-iac-completeness-audit.md`：从 `mysql_source_delay` 倒推出 21 个 IaC 完整性问题（10 个已修 + 11 个排进 V1.8-V1.10） (`d4ffcc4`)
+- 首篇审计 `Docs/reviews/v1.7-iac-completeness-audit.md`：从 `mysql_source_delay` 倒推出 21 个 IaC 完整性问题（10 个已修 + 11 个排进 V1.9-V1.13；版本号在 2026-05-26 因 DMS 插入新 V1.8 整体顺延一格） (`d4ffcc4`)
 - 新增 `.cursor/rules/15-current-facts.mdc` 作为动态事实查询入口，AI 不再把规则文件示例当作权威事实 (`e97fe64`)
 
 ### Changed

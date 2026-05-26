@@ -77,7 +77,7 @@ flowchart LR
 | 节点互联 | Tailscale（WireGuard） | 跨多云加密隧道，零公网端口暴露 |
 | 配置即代码 | Ansible + ansible-vault | bj-01 为唯一控制节点；vault 加密敏感信息后入 Git；`playbooks/site.yml` 全量幂等 |
 | CI / CD | Jenkins + Pipeline as Code | `Jenkinsfile` 在仓库内；GitHub webhook 触发 + 参数化手动；含 Smoke Test 与飞书通知 |
-| 容器编排 | Docker + Docker Compose | 网络 `global_gateway`；K3s 计划 v1.13 引入（仅承载无状态服务） |
+| 容器编排 | Docker + Docker Compose | 网络 `global_gateway`；K3s 计划 v1.15 引入（仅承载无状态服务） |
 | 私有镜像 | Docker Registry v2 | bj-01 自建，htpasswd Basic Auth，每周日 02:00 自动 GC（DELETE + 裸 GC 两段式） |
 | 入口网关 | Nginx | TLS 终止、反向代理、按域名分流（业务 / 运维 / 监控） |
 | 监控采集 | Prometheus + node-exporter + mysqld-exporter + blackbox-exporter | gz-01 |
