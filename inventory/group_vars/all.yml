@@ -86,7 +86,7 @@ ruoyi_image_tag: "latest"
 # 同 role 内多次出现的同一镜像（redis master+sentinel、mysql 主从、nginx 入口+
 # diary-assets）共用同一变量，避免升级时漏改其中一处导致协议版本错配。
 # registry_image_tag / ruoyi_image_* 命名风格不同但被 Jenkins/runbook 多处引用，
-# 留作存量，v1.12 CI/CD IaC 化时顺带统一。
+# 留作存量，phase-1 路线图 `cicd-state-iac` 主题落地时顺带统一。
 prometheus_image:      "prom/prometheus:v2.53.0"
 grafana_image:         "grafana/grafana:11.0.0"
 alertmanager_image:    "prom/alertmanager:v0.27.0"

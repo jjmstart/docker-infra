@@ -77,7 +77,7 @@ flowchart LR
 | 节点互联 | Tailscale（WireGuard） | 跨多云加密隧道，零公网端口暴露 |
 | 配置即代码 | Ansible + ansible-vault | bj-01 为唯一控制节点；vault 加密敏感信息后入 Git；`playbooks/site.yml` 全量幂等 |
 | CI / CD | Jenkins + Pipeline as Code | `Jenkinsfile` 在仓库内；GitHub webhook 触发 + 参数化手动；含 Smoke Test 与飞书通知 |
-| 容器编排 | Docker + Docker Compose | 网络 `global_gateway`；K3s 计划 v1.15 引入（仅承载无状态服务） |
+| 容器编排 | Docker + Docker Compose | 网络 `global_gateway`；K3s 计划在 phase-1 路线图 [`k3s-stateless`](Docs/scheme/phase-1-architecture-upgrade.md#k3s-stateless) 主题引入（仅承载无状态服务） |
 | 私有镜像 | Docker Registry v2 | bj-01 自建，htpasswd Basic Auth，每周日 02:00 自动 GC（DELETE + 裸 GC 两段式） |
 | 入口网关 | Nginx | TLS 终止、反向代理、按域名分流（业务 / 运维 / 监控） |
 | 监控采集 | Prometheus + node-exporter + mysqld-exporter + blackbox-exporter | gz-01 |
@@ -104,7 +104,7 @@ flowchart LR
 | V1.5 | `arch-v1.5` | **告警闭环** | Prometheus 规则 + blackbox-exporter + Alertmanager + 飞书机器人 |
 | V1.6 | `arch-v1.6` | **应用交付流水线** | 私有 Registry + ruoyi CI/CD 全链路 + 周 GC + Smoke Test + 双机器人 |
 | V1.7 | `arch-v1.7` | **备份恢复闭环** | mysqldump + 阿里云 OSS + bj-01 临时容器演练，**实测 RTO 34 秒、最大 RPO 24 小时** |
-| V1.8+ | — | IaC 完整性 / CI 质量门禁 / 入口探测功能深度 / K3s 演进 | 路线图见 [`Docs/scheme/phase-1-architecture-upgrade.md`](Docs/scheme/phase-1-architecture-upgrade.md) |
+| 未来主题 | — | DMS 出口冗余 / IaC 完整性 / ProxySQL HA / Redis Sentinel 边界 / CI/CD IaC / K3s 演进 等（slug 化映射，目标版本号以路线图主文件为准） | 路线图见 [`Docs/scheme/phase-1-architecture-upgrade.md`](Docs/scheme/phase-1-architecture-upgrade.md) |
 
 按版本聚合的完整变更日志：[`CHANGELOG.md`](CHANGELOG.md)
 

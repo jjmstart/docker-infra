@@ -87,7 +87,7 @@
 
 **目标值的取值逻辑**：
 
-- Tier-1 设 99.5% 而非 99.9%：当前 gz-01 是单点入口（v1.14 计划迁至 gz-02 + watchdog 闭环；含 v1.8 DMS 出口冗余），单云厂商月级故障 + 计划维护窗口都会消耗预算，99.5% 是有诚意但有可达性的目标
+- Tier-1 设 99.5% 而非 99.9%：当前 gz-01 是单点入口（计划在 phase-1 路线图 [`service-migration`](scheme/phase-1-architecture-upgrade.md#service-migration) 主题迁至 gz-02 + watchdog 闭环；含 [`dms-outlet-redundancy`](scheme/phase-1-architecture-upgrade.md#dms-outlet-redundancy) 主题 DMS 出口冗余），单云厂商月级故障 + 计划维护窗口都会消耗预算，99.5% 是有诚意但有可达性的目标
 - Tier-2 设 99.0%：运维平台 + 监控自身允许月度有更长维护窗口，9 小时容错够覆盖一次跨城演练或重启
 - Tier-3 不设高目标：避免为 Diary 这种私人工具消耗运维注意力，95% 是诚实声明
 
