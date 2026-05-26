@@ -34,9 +34,8 @@ Docs/.obsidian/
 # ========= Ansible vault 密码文件 =========
 vault/.vault-pass
 
-# ========= 个人学习规划 =========
-# 整个 Docs/scheme/ 目录默认不进 Git（求职策略备忘录、复盘清单等私密内容）
-# 仅 phase-1 架构演进路线图作为面试可见的工程素养证据，单文件白名单
-# 注意：必须用 Docs/scheme/* 而非 Docs/scheme/，否则目录级忽略会压制文件级 negation
-Docs/scheme/*
-!Docs/scheme/phase-1-architecture-upgrade.md
+# ========= 个人材料（仓库根级，绝对不进 Git）=========
+# 包括 Gap year 叙事、Q&A 答案库、心理预案、求职策略备忘录、面试反馈、offer 对比、入职决策记录等
+# 含真实姓名、亲属关系、公司名、薪资数字、心理话术等敏感信息，严禁入 git
+# leading / 表示根锚定，只匹配仓库根的 private/，不影响子目录中可能出现的同名目录
+/private/
