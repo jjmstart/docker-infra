@@ -121,14 +121,12 @@ flowchart LR
 | [`architecture/`](Docs/architecture/) | **架构快照**——每版本一份，记录落地后的完整集群状态（节点、服务、网络、决策） |
 | [`retrospectives/`](Docs/retrospectives/) | **单版本演进复盘**——Q/A 形式解释技术决策原因，配踩坑记录与操作心得 |
 | [`reviews/`](Docs/reviews/) | **跨版本主题型审计**——从一个具体细节倒推、系统性盘点同类盲点，给出修复排期 |
-| [`narratives/`](Docs/narratives/) | **面试叙事素材**——按"触发点 → 发现的问题 → 已解决 → 决策分析 → 面试一句话版 → 可追问 Q&A → 可迁移的工程原则"七要素组织 |
 | [`drills/`](Docs/drills/) | **故障演练记录**——主动验证已有能力（告警链路时延、故障摘除自动性、恢复 RTO 等） |
 | [`sli-slo.md`](Docs/sli-slo.md) | **运营层指标契约**——集群对外承诺哪些可靠性指标、用什么衡量、违约如何兜底 |
 
 几个值得直接打开的文件：
 
 - [`Docs/architecture/v1.7.md`](Docs/architecture/v1.7.md) — 当前集群完整快照
-- [`Docs/narratives/v1.7.md`](Docs/narratives/v1.7.md) — V1.7 期间识别到的 6 条可面试叙事点（每条含一句话版 + 可追问 Q&A）
 - [`Docs/reviews/v1.7-iac-completeness-audit.md`](Docs/reviews/v1.7-iac-completeness-audit.md) — 从 `mysql_source_delay` 一个变量倒推出的 21 个 IaC 完整性问题
 - [`Docs/reviews/v1.7-ingress-probe-functional-depth-gap.md`](Docs/reviews/v1.7-ingress-probe-functional-depth-gap.md) — 一次 ruoyi 后端死 5 天无人感知的故障，倒推入口探测的功能深度盲区
 - [`Docs/retrospectives/v1.7-retrospective.md`](Docs/retrospectives/v1.7-retrospective.md) — V1.7 完整复盘
@@ -140,12 +138,29 @@ flowchart LR
 
 ## 关于这个项目
 
-这是一个**学习项目**——目标是系统性掌握云运维核心技能，并形成可在面试中复述、可追问、可排障的工程经验。集群本身运行在跨多个云厂商的真实付费服务器上，所有节点、服务、配置都是真实工作的，不存在示意图节点或假数据。
+这是一个**个人学习项目**——目标是系统性掌握云运维核心技能，并把每一次演进都沉淀为可被读懂、可被追问、可被排障的工程记录。集群本身运行在跨多个云厂商的真实付费服务器上，所有节点、服务、配置都是真实工作的，不存在示意图节点或假数据。
+
+本仓库**不接受 Issue / PR 用户支持**，也不提供 fork-and-deploy 模板——它是一个公开的"个人云运维演进日志"，欢迎阅读、学习与借鉴，但请按你自己的环境和决策另起一份再做改造。
 
 设计原则：
 
 - **每个版本只解决一个主题**——克制复杂度，确保每个新引入的组件都"能讲清为什么选 X 而不是 Y"
 - **不为"看起来专业"堆砌组件**——架构对齐中小型科技公司的真实生产实践，不参考大厂超大规模架构
-- **文档体系本身是产物**——proposals / runbooks / architecture / retrospectives / reviews / narratives 互补，每次演进都完整闭环
+- **文档体系本身是产物**——proposals / runbooks / architecture / retrospectives / reviews / drills 互补，每次演进都完整闭环
 - **真故障是免费的素材**——出过的坑会被同时写进 retrospective（事件层）和 review（如果同类问题跨版本存在），不浪费任何一次故障
+
+---
+
+## 如何阅读这个仓库
+
+如果是第一次打开这个仓库，建议按下面的顺序快速建立全局印象：
+
+1. **当前架构是什么样**：先看 [`Docs/architecture/v1.7.md`](Docs/architecture/v1.7.md)——节点角色、服务分布、网络拓扑、关键技术决策都在一份快照里。
+2. **过去是怎么走到现在的**：从 [`CHANGELOG.md`](CHANGELOG.md) 按 `arch-vX.Y` tag 顺序扫一遍，对应版本可以打开 `Docs/architecture/vX.Y.md` 看每个里程碑的完整状态。
+3. **每次演进具体怎么落地**：在 [`Docs/runbooks/`](Docs/runbooks/) 找 `vX.Y-to-vX.Z.md`，里面是分步可复现的操作清单（命令 + 预期输出 + 验证 + 回滚）。
+4. **当时为什么这么决定**：在 [`Docs/retrospectives/`](Docs/retrospectives/) 找对应版本的 `-retrospective.md`，里面以 Q&A 形式记录决策理由与踩坑。
+5. **跨版本的隐性盲点是怎么被识别的**：[`Docs/reviews/`](Docs/reviews/) 按主题组织，每份审计都从一个具体细节倒推到系统性结论。
+6. **真实故障下系统的实际表现**：[`Docs/drills/`](Docs/drills/) 记录受控演练的实测数据（告警时延、故障摘除耗时、恢复 RTO 等）。
+
+如果是来看代码，主入口是仓库根的 [`Jenkinsfile`](Jenkinsfile) 和 [`playbooks/site.yml`](playbooks/site.yml)；具体每个组件的实现在 [`roles/`](roles/) 下按模块组织。
 

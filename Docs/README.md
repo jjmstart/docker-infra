@@ -20,7 +20,7 @@
 
 ### [retrospectives/](retrospectives/) — 演进总结
 
-每次演进完成后的**复盘文档**：演进成果、技术决策背后的原因（Q/A 形式）、踩坑记录与操作心得。适合在演进完成后回顾，或作为面试复盘材料。
+每次演进完成后的**复盘文档**：演进成果、技术决策背后的原因（Q/A 形式）、踩坑记录与操作心得。适合在演进完成后回顾，也是后续读者快速理解"为什么这么做"的入口。
 
 ### [reviews/](reviews/) — 主题型横向复盘
 
@@ -29,10 +29,6 @@
 ### [drills/](drills/) — 故障演练记录
 
 主动验证已有能力的**故障演练记录**。每份记录"演练目标 → 前置基线 → 演练步骤 → 实测观察 → 心得 → 待改进项"完整闭环。与 `reviews/` 识别理论盲点不同，本目录用线上实操验证实际表现（告警链路时延、故障摘除自动性、恢复操作可重复性），不绑定 Git tag。
-
-### [narratives/](narratives/) — 面试叙事素材集
-
-从 `retrospectives/` / `reviews/` / `drills/` 中抽取的**可面试叙事切片**。每个架构版本一份文件，按"触发点 → 发现的问题 → 已解决 → 决策分析 → 面试一句话版 → 可追问 Q&A → 可迁移的工程原则"七要素组织。不引入新事实，只做"面向面试现场表达"的重写。作为 `scheme/phase-2-job-hunting.md` 任务 1 的录音自述清单使用。
 
 ### [sli-slo.md](sli-slo.md) — SLI/SLO 契约
 
@@ -51,7 +47,6 @@
 | 演进刚完成，我想复盘做了什么、踩了什么坑、加深理解    | [retrospectives/](retrospectives/) → 读对应版本总结（如 `v1.2-retrospective.md`） |
 | 我想深入理解当前架构有哪些跨版本的隐性盲点         | [reviews/](reviews/) → 读对应主题审计（如 `v1.7-iac-completeness-audit.md`）      |
 | 我想看某次故障演练的实测数据（告警时延、摘除耗时等）       | [drills/](drills/) → 读对应演练记录（如 `v1.7-gz02-app-failure.md`）             |
-| 我准备面试，想拿到某个版本的"叙事点速查 + 一句话版 + 可追问 Q&A" | [narratives/](narratives/) → 读对应版本叙事集（如 `v1.7.md`）          |
 | 我想了解集群对外承诺什么可靠性指标、当前实测多少          | [sli-slo.md](sli-slo.md) → 单文件运营契约                                   |
 | 我想快速扫读上一个 tag 到当前 HEAD 之间发生了什么 | [CHANGELOG.md](../CHANGELOG.md) → Unreleased 段 / 历史版本段                |
 
@@ -137,15 +132,6 @@
 | ------------------------------------------------------------------------ | ------- | ------------------------------------------------------------- | -- |
 | [drills/README.md](drills/README.md)                                     | —       | 演练子体系索引与撰写规范                                                  | —  |
 | [drills/v1.7-gz02-app-failure.md](drills/v1.7-gz02-app-failure.md)       | V1.7    | gz-02 ruoyi-admin-2 故障下 Nginx upstream 摘除、blackbox 探测延迟、告警链路时延 | 计划中 |
-
-
-### narratives/
-
-
-| 文件                                           | 版本   | 叙事点数量 | 备注                                            |
-| -------------------------------------------- | ---- | ----- | --------------------------------------------- |
-| [narratives/README.md](narratives/README.md) | —    | —     | 面试叙事素材集索引与撰写规范                                |
-| [narratives/v1.7.md](narratives/v1.7.md)     | V1.7 | 11     | IaC 完整性 / CI 质量门禁 / 网关耦合演进时机 / 入口探测功能深度盲区 / Jenkins 403 双层语义 / Prometheus reload inode 陷阱 / Jenkins CD 路径过滤层级试错 / role 镜像 tag 收敛 / ProxySQL SPOF 路线重划 / 告警链路 watchdog 二阶盲点 + DMS 互补 / Docs 系统耦合度治理（含一句话版、Q&A、工程原则） |
 
 
 ### 单文件文档

@@ -37,7 +37,7 @@
 - `playbooks/setup_backup.yml` 接入 `playbooks/site.yml` 主流程，告别"忘了跑"风险 (`f07f0e6`)
 - `.cursor/rules/00-project-context.mdc` / `10-docs-workflow.mdc` 去除硬编码的四节点表与 IP / 规格 / 延迟，统一指向 inventory 与最新架构快照 (`0c9581b`)
 - `.cursor/rules/01 / 20 / 30 / 40 / 50` 统一去硬编码，红线与示例不再钉在某一版本 (`d578515`)
-- `.cursor/rules/01-user-profile.mdc` 重写决策原则 2：能力标准是"能拿 offer + 能干活"，不是"必须 0 AI 完成" (`f21b12f`)
+- `.cursor/rules/01-user-profile.mdc` 重写决策原则 2：能力标准是"能讲清意图 + 能独立排障"，不是"必须 0 AI 完成" (`f21b12f`)
 - `.cursor/rules/00-project-context.mdc` 澄清 AI 协作边界：AI 是合法生产力工具，要点是"能讲清"而非"AI 是否参与" (`4a14c10`)
 - `roles/nginx/templates/**` 站点配置与主模板注释精简 (`2f20877`, `d9667da`)
 
@@ -61,7 +61,6 @@
 - `jenkins-build/Dockerfile` 注释补全 (`5a2da66`)
 - `roles/jenkins/`、`roles/ruoyi/`、`roles/mysql-replica/`、`roles/docker-daemon/` 内 task / template / handler 注释维护 (`4bf4fd0`, `a7f6800`, `d18afc7`, `e49918a`, `fdc2ae0`)
 - `inventory/group_vars/all.yml` 注释更新 (`57a2ef3`)
-- `Docs/narratives/v1.7.md` 新增叙事点 #5（Jenkins 探测 403 + meta refresh 双层语义）与 #6（prometheus reload 6 版本潜伏失效 → IaC 验证心智）(`6e8283c`)
 
 ---
 
