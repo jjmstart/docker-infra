@@ -1,7 +1,7 @@
 // docker-infra CD：拉代码 → 路径过滤（纯 docs 改动早退 NOT_BUILT）→ Ansible 预检 →（仅 main）全量部署 → Prometheus 烟测 → 飞书通知。
 // 镜像构建与推 Registry 在 ruoyi 仓库的独立 Jenkins Job；本文件只负责用 IMAGE_TAG 驱动 Ansible 下发。
 // 路径过滤之所以在 Pipeline 层而不是 SCM 层做：Jenkins Git plugin 在 webhook + ls-remote 轻量 polling 模式下只比对 HEAD SHA、不拉 commit 列表，
-// 所以 Job UI 的 Excluded Regions 静默失效（曾在 #66 验证踩坑，详见 Docs/narratives/v1.7.md §7）。
+// 所以 Job UI 的 Excluded Regions 静默失效（曾在 build #66 验证踩坑）。
 pipeline {
   agent any
 

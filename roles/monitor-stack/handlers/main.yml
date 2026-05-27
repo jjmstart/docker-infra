@@ -14,7 +14,7 @@
 
 # prometheus.yml 是单文件 bind mount，ansible template 的"写临时文件 → atomic rename"
 # 会换 inode；容器仍持有旧 inode，热 reload 读到的还是旧内容。主配置改动必须重建容器
-# 让 mount 跟随新 inode，否则 reload 永远不生效（参见 Docs/narratives/v1.7.md 叙事点 #6）。
+# 让 mount 跟随新 inode，否则 reload 永远不生效。
 - name: restart prometheus
   community.docker.docker_compose_v2:
     project_src: "{{ docker_root }}/monitor"
