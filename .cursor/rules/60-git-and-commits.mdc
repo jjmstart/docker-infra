@@ -79,4 +79,4 @@ vault 文件提交前确认是 `$ANSIBLE_VAULT;1.1;AES256` 开头的加密状态
 8. README 索引 → `docs: update indexes for vX.Z`
 9. 打 tag → `git tag arch-vX.Z` 并 push tag
 
-每个版本最终在 git log 上呈现一条清晰的"草案 → 实施 → 验证 → 复盘 → 发布"叙事链路，本身就是面试可讲的工程素养证据。
+每个版本最终在 git log 上呈现一条清晰的"草案 → 实施 → 验证 → 复盘 → 发布"链路，便于后续读者快速理解每次架构演进的完整动因与落地路径。
