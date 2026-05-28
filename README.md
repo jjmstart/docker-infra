@@ -68,6 +68,98 @@ flowchart LR
 
 完整快照（每个节点详细服务清单、端口、网络延迟、决策原因）：[`Docs/architecture/v1.7.md`](Docs/architecture/v1.7.md)
 
+### 数据流分层
+
+上面那张是**物理拓扑**（"集群里有什么 · 部署在哪"）；下面这张换成**数据流视角**——按业务、监控采集、告警、CI/CD、主从复制、备份恢复 6 类数据流分别给边上色，便于一眼看出每条链路的归属与方向。
+
+```mermaid
+flowchart LR
+    USER["互联网用户"]
+    DEV["开发者<br/>git push"]
+    DOMAINS[("5 个公网域名")]
+    OSS[("阿里云 OSS")]
+    FB_AL["飞书 · 告警机器人"]
+    FB_CI["飞书 · CI/CD 机器人"]
+
+    subgraph FRONT["入口与业务（gz-01 / gz-03 / gz-02）"]
+        NGINX["Nginx 80/443"]
+        RY["ruoyi-admin × 2"]
+        PXY["ProxySQL"]
+        MYM["MySQL Master"]
+        MYS1["MySQL 实时从（半同步）"]
+        RD["Redis 主从 + Sentinel"]
+    end
+
+    subgraph OBSV["监控告警（gz-01 + bj-01）"]
+        EXP["node-exporter ×4<br/>mysqld-exporter ×3"]
+        BB["blackbox-exporter"]
+        PROM["Prometheus"]
+        AM["Alertmanager<br/>+ prometheus-alert"]
+    end
+
+    subgraph CICD["CI/CD（bj-01）"]
+        JK["Jenkins"]
+        REG["Docker Registry v2"]
+    end
+
+    subgraph BCKDR["备份与灾备（gz-03 + bj-01）"]
+        BK["mysql_backup.sh<br/>cron 02:00"]
+        MYS2["MySQL 延迟从<br/>SOURCE_DELAY=3600s"]
+        REST["mysql-restore-test<br/>临时容器:3307"]
+    end
+
+    USER -->|HTTPS| NGINX
+    NGINX -->|HTTP 反代| RY
+    RY -->|SQL| PXY
+    PXY -->|写| MYM
+    PXY -->|读| MYS1
+    RY -->|cache| RD
+
+    EXP -.->|scrape| PROM
+    PROM -.->|probe| BB
+    BB -.->|http_2xx| DOMAINS
+
+    PROM ==>|fire rule| AM
+    AM ==>|webhook| FB_AL
+
+    DEV -->|webhook 触发 build| JK
+    JK -->|build + push| REG
+    JK -->|ansible-deploy Pipeline<br/>手动 Build with Parameters 指定 IMAGE_TAG<br/>纯 docs push 自动跳过部署| RY
+    REG -.->|pull image| RY
+    JK -->|smoke probe| PROM
+    JK -->|notify| FB_CI
+
+    MYM -.->|半同步 ~5ms 同城| MYS1
+    MYM -.->|延迟 3600s 跨城| MYS2
+
+    BK -->|ossutil cp 上传| OSS
+    OSS -->|ossutil cp 下载演练| REST
+
+    linkStyle 0,1,2,3,4,5 stroke:#3498db,stroke-width:2px
+    linkStyle 6,7,8 stroke:#27ae60,stroke-width:2px
+    linkStyle 9,10 stroke:#c0392b,stroke-width:2.5px
+    linkStyle 11,12,13,14,15,16 stroke:#d99036,stroke-width:2px
+    linkStyle 17,18 stroke:#7f8c8d,stroke-width:1.5px
+    linkStyle 19,20 stroke:#8e44ad,stroke-width:2px
+
+    style FRONT fill:#eef6ff,stroke:#4f83cc,color:#111
+    style OBSV fill:#e8fff0,stroke:#27ae60,color:#111
+    style CICD fill:#fff6e8,stroke:#d99036,color:#111
+    style BCKDR fill:#f5e6ff,stroke:#8e44ad,color:#111
+
+    classDef ext fill:#fdf0ff,stroke:#9b59b6,color:#111
+    class USER,DEV,DOMAINS,OSS,FB_AL,FB_CI ext
+```
+
+| 边色 / 样式 | 数据流 | 路径说明 |
+|---|---|---|
+| 蓝 · 实线 | **业务流量** | 用户 → Nginx → ruoyi → ProxySQL → MySQL（写主 / 读从）/ Redis |
+| 绿 · 虚线 | **监控采集** | 各节点 exporter → Prometheus；Prometheus → blackbox → 5 个公网域名（用户视角探测） |
+| 红 · 粗实线 | **告警链路** | Prometheus 规则触发 → Alertmanager + prometheus-alert 适配 → 飞书告警机器人（端到端 < 5 分钟） |
+| 橙 · 实线 / 虚线 | **CI/CD 镜像与构建** | ① git push webhook → Jenkins 自动 build & push 镜像至 Registry;② 手动在 `ansible-deploy` Pipeline 通过 Build with Parameters 指定 `IMAGE_TAG` 触发部署,Jenkins 用 Ansible 编排 gz-02/gz-03,目标节点从 Registry pull 镜像并重启容器（图中橙色虚线 = 镜像数据流）;③ 部署后 Jenkins 调 Prometheus 做 smoke probe,结果发飞书 CI/CD 机器人。构建与部署解耦,便于按 tag 精确回滚。**优化**：`ansible-deploy` Pipeline 内置 `Path Filter` stage,以 `GIT_PREVIOUS_SUCCESSFUL_COMMIT` 为基准 diff,若本次 push 仅命中 docs 白名单（`Docs/` / `.cursor/` / `CHANGELOG.md` / `README.md` / `.gitignore`）则早退 `NOT_BUILT`,避免 60% 以上的纯文档 push 触发无意义的 Ansible 全量执行 |
+| 灰 · 虚线 | **MySQL 主从复制** | 主 → 同城实时从（半同步 ~5ms）/ 跨城延迟从（SOURCE_DELAY=3600s,提供误操作回档窗口） |
+| 紫 · 实线 | **备份与恢复** | mysql_backup.sh 每日 02:00 上传至阿里云 OSS；演练时下载到 bj-01 临时容器,实测 RTO 34 秒 |
+
 ---
 
 ## 技术栈
