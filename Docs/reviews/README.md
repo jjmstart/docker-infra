@@ -8,5 +8,6 @@
 |------|----------|------|------|
 | [v1.7-iac-completeness-audit.md](v1.7-iac-completeness-audit.md) | V1.7 | IaC 完整性审计：V1.7 → V1.8 准备期识别并处理的 21 个集群可复现性问题（10 个已修 + 11 个排进 4 个 phase-1 主题：`base-reproducibility-fix` / `proxysql-ha` / `redis-sentinel-boundary` / `cicd-state-iac`） | 部分已修 + 剩余已规划 |
 | [v1.7-iac-ci-quality-gate-gap.md](v1.7-iac-ci-quality-gate-gap.md) | V1.7 | CI 链路缺少 IaC 自身质量门禁：`ansible-lint` / `yamllint` / `gitleaks` / vault 加密状态校验作为 Jenkins pre-merge stage | 已识别，待修复 |
+| [v1.7-secret-leak-incident.md](v1.7-secret-leak-incident.md) | V1.7 | 凭据泄漏事件复盘：公开前 gitleaks 全历史扫描发现 3 处真实生产凭据，按"先轮换、后清理历史、最后公开"完成事故响应，并将 `gitleaks` 门禁并入 `cicd-state-iac` 主题 | 已完结 + 长期改进已规划 |
 | [v1.7-ingress-probe-functional-depth-gap.md](v1.7-ingress-probe-functional-depth-gap.md) | V1.7 | 入口探测的功能深度盲区：从一次 Ruoyi 后端 5 天无人感知的故障倒推 6 个 blackbox 探测目标的功能覆盖，三类盲区按 ROI 分级排进 v1.7 修复期 / `proxysql-ha` 主题 / `observability-integration` 主题 | 部分已修 + 剩余已规划 |
 | [v1.7-alerting-pipeline-spof-audit.md](v1.7-alerting-pipeline-spof-audit.md) | V1.7 | 告警链路 SPOF 盲点：watchdog 自己也是把告警发给 bj-01 同一份 Alertmanager；按 4 个独立失效域审视后，DMS 独立成 `dms-outlet-redundancy` 主题覆盖 #2/#3/#4，watchdog 保留在 `service-migration` 主题仅覆盖 #1 | 已识别 + 已规划修复 |
