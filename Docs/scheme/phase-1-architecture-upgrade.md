@@ -128,22 +128,24 @@
 
 gz-04 / gz-05 已作为广州 4G 节点就位，后续 [`k3s-stateless`](#k3s-stateless) 主题需要低延迟同城节点承载控制面与 worker。K3s 控制面对延迟敏感，不适合把 bj-01 作为控制面；同时 gz-03 是 MySQL / Redis / ProxySQL 主链路节点，不应引入 K3s agent 扩大故障面。
 
-本主题目标是将 gz-04 / gz-05 安全、可重复地接入现有基础设施，**只做基础接入，不承载业务工作负载**：网络层纳入 Tailscale + Ansible IaC 管理，Docker 安装与基础运行时保持与现有节点一致，节点纳入 Prometheus 监控，新节点 SSH 采用 `admin-alex + become` 替代 root 直接登录还清技术债。
+本主题目标是将 gz-04 / gz-05 安全、可重复地接入现有基础设施，**只做基础接入，不承载业务工作负载**：网络层纳入 Tailscale + Ansible IaC 管理，Docker 安装与基础运行时保持与现有节点一致，节点纳入 Prometheus 监控。鉴权方面引入可复用 `roles/base-access/`，在**全部 6 台节点**幂等创建 `admin-alex` + 授权公钥 + NOPASSWD sudoers（纯追加，不删 root），但**只翻转 gz-04/gz-05 的 `ansible_user`**；现有四台节点的 `ansible_user` 翻转 + Jenkins `ansible-ssh-key` 凭据切换 + 关闭 root 登录拆为独立后续任务（咬住 CI 凭据与 bj-01 自管理两个耦合，且对象是生产节点），并入 [`cicd-state-iac`](#cicd-state-iac) 或单列小任务。
 
 ### 要完成的内容
 
 **新增 Ansible Role**
 
 - `roles/tailscale/`：安装 Tailscale（apt），加入 tailnet（`tailscale up --authkey --hostname`），幂等检查（已接入则跳过）
+- `roles/base-access/`：节点接入身份管理——幂等创建 `admin-alex` 用户、写 `authorized_keys`（运维操作机 + Jenkins 公钥两把都加）、写 NOPASSWD sudoers（visudo 校验）；对 6 台全节点幂等，老四台纯追加
 
 **现有 Role 扩展**
 
-- `roles/docker-daemon/`：在现有 pip/SDK/daemon.json 配置任务之前**插入 Docker Engine 安装任务**（docker-ce + docker-compose-plugin），保持幂等；若 `global_gateway` 网络创建尚未被 [`base-reproducibility-fix`](#base-reproducibility-fix) 主题统一纳管，本主题先以最小任务保证 gz-04/gz-05 上网络存在；现有四台节点重复执行不破坏运行状态
-- `roles/node-exporter/`：模板改为条件渲染，`mysqld-exporter` 只在 `mysqld_exporter_nodes` 分组内启动；gz-04/gz-05 只跑 node-exporter；`setup_monitor.yml` 对应 play 从 `mysqld_exporter_nodes` 改为 `exporter_nodes:!monitor_nodes`
+- `roles/docker-daemon/`：在现有 pip/SDK/daemon.json 配置任务之前**插入 Docker Engine 安装任务**（docker-ce + docker-compose-plugin，由 `group_vars/all.yml` 变量固定版本），保持幂等；同时新增 `community.docker.docker_network` 任务管理 `global_gateway` overlay 网络，把现有四台节点的手工创建状态收编到 IaC（[`base-reproducibility-fix`](#base-reproducibility-fix) 主题原"Docker 运行时基础状态"段由本主题提前回收）；现有四台节点重复执行不破坏运行状态
+- `roles/node-exporter/` 与 `roles/mysqld-exporter/`：**已是两个独立 role**，`setup_monitor.yml` 也是两个独立 play 各指向 `exporter_nodes` / `mysqld_exporter_nodes` 分组；本主题只需在 inventory 把 gz-04/gz-05 加入 `exporter_nodes`、不加入 `mysqld_exporter_nodes`，**不需要改 role 模板，不需要改 setup_monitor.yml**
 
 **新增 Playbook**
 
 - `playbooks/setup_tailscale.yml`：Tailscale bootstrap 专用 playbook，经公网 IP 执行；接入完成后即切换 Tailscale IP，后续操作不再使用此 playbook
+- `playbooks/setup_access.yml`：base-access role 入口，并 `import_playbook` 进 `site.yml` 最前，每次全量部署收敛 admin-alex 鉴权状态
 
 **Prometheus 更新**
 
@@ -153,7 +155,9 @@ gz-04 / gz-05 已作为广州 4G 节点就位，后续 [`k3s-stateless`](#k3s-st
 
 - gz-04/gz-05 以公网 IP bootstrap，接入后替换为 Tailscale IP
 - 新增 `managed_nodes` 分组；gz-04/gz-05 加入 `exporter_nodes`（不加入 `mysqld_exporter_nodes`）
-- vault 新增 `tailscale_authkey`、`gz04_become_password`、`gz05_become_password` 三项加密变量
+- vault 新增单项加密变量 `tailscale_authkey`（reusable + preauthorized + tag:server）
+- `group_vars/all.yml` 新增 `admin_alex_authorized_keys` 公钥列表（公钥非敏感，明文入 Git）
+- base-access 在 6 台全节点创建 admin-alex（NOPASSWD sudo，vault 不存 become_password）；但**只翻转 gz-04/gz-05 的 `ansible_user` 为 admin-alex**，现有四台保持 `ansible_user: root`（翻转拆出）
 
 ### 验收标准
 
@@ -161,7 +165,8 @@ gz-04 / gz-05 已作为广州 4G 节点就位，后续 [`k3s-stateless`](#k3s-st
 - `docker info` 正常；`docker network ls` 可见 `global_gateway`
 - Prometheus UI 中 `up{instance="<gz-04/gz-05 tailscale_ip>:9100"} = 1`
 - Grafana Node Exporter 面板新节点主机指标（CPU / 内存 / 磁盘）可见
-- 重复执行 docker-daemon + node-exporter role，`changed=0 failed=0`
+- 6 台全节点 `getent passwd admin-alex` 存在，`ssh admin-alex@<node> sudo -n true` 返回 0；现有四台 `ansible_user` 仍为 root 且 root 通道不受影响
+- 重复执行 base-access + docker-daemon + node-exporter role，`changed=0 failed=0`
 - `vault/secrets.yml` 保持 AES256 加密，inventory 中不含明文密码
 
 ---
@@ -436,9 +441,8 @@ v1.7 全量复盘中，从 `inventory/hosts.yml` 中 `mysql_source_delay: 3600` 
 
 **Docker 运行时基础状态**
 
-- 在 `roles/docker-daemon/` 或独立基础设施 role 中管理 `global_gateway` 网络创建
-- 确保所有需要运行 Compose 栈的节点上，`docker network ls` 可见 `global_gateway`
-- 网络创建必须幂等，重复执行不报错、不产生 changed
+- **本节内容已由 [`six-node-onboarding`](#six-node-onboarding) 主题（v1.8）提前回收**：`roles/docker-daemon/` 已新增 `community.docker.docker_network` 任务管理 `global_gateway` 网络创建，所有 `managed_nodes` 节点上 `docker network ls` 可见 `global_gateway`，重复执行幂等
+- `base-reproducibility-fix` 主题不再独立处理 Docker 网络管理
 
 **MySQL Master 数据层初始化**
 
@@ -461,7 +465,6 @@ v1.7 全量复盘中，从 `inventory/hosts.yml` 中 `mysql_source_delay: 3600` 
 
 ### 验收标准
 
-- 新节点执行基础 role 后，`global_gateway` 网络存在且重复执行幂等
 - 新初始化的 MySQL Master 存在 `ry-vue`、复制账号、Exporter 账号、ProxySQL 监控账号和应用账号
 - gz-02 从库复制通道 `SQL_Delay=0`，bj-01 从库复制通道 `SQL_Delay=3600`
 - 删除从库数据目录并按 bootstrap playbook 重建后，能重新接入主库并通过 `SHOW REPLICA STATUS\G` 验证

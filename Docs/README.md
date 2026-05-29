@@ -64,6 +64,7 @@
 | [proposals/v1.5-alerting.md](proposals/v1.5-alerting.md) | V1.5 | 告警系统设计草案（已落地，最终状态见 `architecture/v1.5.md`）    |
 | [proposals/v1.6-pipeline.md](proposals/v1.6-pipeline.md) | V1.6 | 应用交付流水线设计草案（已落地，最终状态见 `architecture/v1.6.md`） |
 | [proposals/v1.7-backup.md](proposals/v1.7-backup.md)     | V1.7 | 备份恢复最小闭环设计草案（已落地，最终状态见 `architecture/v1.7.md`）  |
+| [proposals/six-node-onboarding.md](proposals/six-node-onboarding.md) | `six-node-onboarding` | 六节点基础接入设计草案：gz-04/gz-05 Tailscale + Docker + node-exporter 纳管；base-access 在 6 台建 admin-alex，老四台鉴权 cutover 拆出 |
 | [proposals/proxysql-ha.md](proposals/proxysql-ha.md) | `proxysql-ha` | ProxySQL HA 化设计草案（占位，仅 PoC 待确认问题已填充） |
 
 
