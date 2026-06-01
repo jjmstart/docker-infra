@@ -13,7 +13,7 @@
 把 gz-04 / gz-05 两台广州 4G 节点安全、可重复地接入现有基础设施，**只做基础接入，不承载业务工作负载**。本主题落地后的边界：
 
 - **网络层**：两节点加入现有 Tailscale tailnet，所有后续运维操作走 Tailscale 内网，不依赖公网端口暴露；Tailscale 安装与入网由 Ansible IaC 管理
-- **运行时层**：Docker Engine 以与现有四台节点一致的方式安装；`global_gateway` overlay 网络由 Ansible 管理（顺带把现有四台节点的手工创建状态收编到 IaC，[`base-reproducibility-fix`](../scheme/phase-1-architecture-upgrade.md#base-reproducibility-fix) 主题对应一项随之结清）
+- **运行时层**：Docker Engine 以与现有四台节点一致的方式安装；`global_gateway` 网络（各主机本地 `bridge`，非跨主机 overlay）由 Ansible 管理（顺带把现有四台节点的手工创建状态收编到 IaC，[`base-reproducibility-fix`](../scheme/phase-1-architecture-upgrade.md#base-reproducibility-fix) 主题对应一项随之结清）
 - **观测层**：两节点纳入 Prometheus 监控（仅 node-exporter，不装 mysqld-exporter），Grafana 主机面板可见
 - **接入身份层**：新增可复用 `roles/base-access/`，在**全部 6 台节点**幂等创建 `admin-alex` 用户 + `authorized_keys` + NOPASSWD sudoers（**纯追加，不删除 root**）；但只把 **gz-04 / gz-05 的 `ansible_user` 翻转为 admin-alex**，现有四台节点保持 `ansible_user: root` 连接不变。现有四台节点的 `ansible_user` 翻转 + Jenkins 凭据切换 + 关闭 root 登录拆为独立后续任务，原因见 §6——它咬住 Jenkins `ansible-ssh-key` 凭据与 bj-01 自管理两个耦合，且对象是生产节点，需要单独的回滚预案窗口
 
@@ -34,7 +34,7 @@
 
 | Role | 改动 | 备注 |
 |---|---|---|
-| `roles/docker-daemon/` | ① 在现有 pip / SDK / daemon.json 任务**之前**插入 Docker Engine 安装任务（apt 仓库 + GPG key + `docker-ce` + `docker-compose-plugin`，固定版本由 `group_vars/all.yml` 变量控制）；② 新增 `community.docker.docker_network` 任务管理 `global_gateway` overlay 网络 | 必须保持幂等；现有四台节点重复执行不破坏运行状态——**这是回收 `base-reproducibility-fix` 主题的关键校验**（详见 §2.5） |
+| `roles/docker-daemon/` | ① 在现有 pip / SDK / daemon.json 任务**之前**插入 Docker Engine 安装任务（apt 仓库 + GPG key + `docker-ce` + `docker-compose-plugin`；apt codename 按 `ansible_distribution_release` 动态取，`state=present` 不锁版本，理由见 §2.7）；② 新增 `community.docker.docker_network` 任务管理 `global_gateway` 本地 `bridge` 网络 | 必须保持幂等；现有四台节点重复执行不破坏运行状态——**这是回收 `base-reproducibility-fix` 主题的关键校验**（详见 §2.5）。本次只对 gz-04/05 执行（决策 B1，见 §2.7） |
 | `roles/node-exporter/` | **不动 role 模板**——node-exporter 与 mysqld-exporter 已是两个独立 role，setup_monitor.yml 也已是两个独立 play 各指向不同分组；本主题只需在 inventory 把 gz-04 / gz-05 加入 `exporter_nodes`、不加入 `mysqld_exporter_nodes` 即可 | 路线图原文"模板改为条件渲染"是基于"两个 exporter 还在同一 role"的过时假设；该差异在路线图同 PR 修正（详见 §2.5） |
 
 ### 2.3 新增 Playbook
@@ -107,21 +107,14 @@ exporter_nodes:                # 在原有 4 台基础上新增 gz-04 / gz-05
 
 **inventory/group_vars/all.yml**
 
-新增 Docker / Tailscale 安装相关公共变量，以及 base-access 的授权公钥列表：
+新增节点接入身份相关公共变量（base-access role）。**不再写死 Docker / Tailscale 版本号与 apt codename**——两台新节点系统不同（gz-04 noble / gz-05 jammy），codename 一律由各节点 `ansible_distribution_release` 动态取，`docker-ce` 用 `state=present` 安装不锁版本（理由见 §2.7）：
 
 ```yaml
-# Docker Engine 版本（所有 managed_nodes 统一；变更需走 base-reproducibility-fix 之后的 IaC 流程）
-docker_ce_version: "5:27.3.1-1~debian.12~bookworm"  # 占位值，落地前以实测确定的稳定版本回填
-docker_compose_plugin_version: "2.29.7-1~debian.12~bookworm"
-
-# Tailscale apt repo 与 hostname 约定（hostname 直接复用 inventory_hostname）
-tailscale_apt_distribution: "bookworm"  # 占位值；待 gz-04 / gz-05 系统版本确定后回填
-
-# admin-alex 授权公钥列表（公钥非敏感，可明文进 Git）
-# 两把都加：运维操作机公钥 + Jenkins ansible-ssh-key 对应公钥，为后续 cutover 预留
+# 节点接入身份（base-access role）。公钥非敏感可明文进 Git；私钥与 vault 凭据不在本主题范围。
+access_user: admin-alex
 admin_alex_authorized_keys:
-  - "<运维操作机 admin-alex 公钥，落地前回填>"
-  - "<Jenkins ansible-ssh-key credential 对应公钥，落地前回填>"
+  - "<bj-01 Ansible 控制节点公钥 ~/.ssh/id_ed25519_ansible.pub，落地前回填>"
+  - "<Jenkins ansible-ssh-key credential 对应公钥，为后续 cutover 预留，D-1 回填>"
 ```
 
 > 公钥可明文入 Git，私钥与 vault 凭据不在本主题改动范围。Jenkins `ansible-ssh-key` 凭据本身（用户名仍为 root）本主题**不动**，只是把其公钥提前授权给 admin-alex，等后续 cutover 任务再翻转用户名。
@@ -145,7 +138,7 @@ admin_alex_authorized_keys:
 | convenience script（`get.docker.com`） | 一行命令最简单 | 与现有四台节点不一致；版本不可固定；依赖外网；不适合 IaC | 不选 |
 | 云厂商镜像源默认 docker-ce | 开箱即用 | 版本受云厂商节奏控制；多云节点版本不齐；难以统一管理 | 不选 |
 
-**结论**：选 Docker 官方 apt 仓库；版本通过 `docker_ce_version` 变量固定，重复执行幂等。现有四台节点首次跑新版 docker-daemon role 时如果检测到本地 Docker 版本与变量目标版本一致，apt 模块返回 `changed=0`，不会触发升级。
+**结论**：选 Docker 官方 apt 仓库，codename 由 `ansible_distribution_release` 动态取。版本管理方式在落地阶段从初稿的"锁定 `docker_ce_version` 变量"修订为"`docker-ce` 用 `state=present` 不锁版本"——`state=present` 对已装节点重复执行绝不升级，从根上消除误触 daemon reload 的风险（完整对照与理由见 §2.7）。
 
 #### Tailscale auth key 形态
 
@@ -165,6 +158,31 @@ admin_alex_authorized_keys:
 | 本主题翻转 `ansible_user` 的节点 | **仅 gz-04 / gz-05** | 这两台是空节点，配错无业务影响；翻转即验收 admin-alex 接入闭环 |
 | 现有四台节点 `ansible_user` | 保持 `root` 不变 | 翻转咬住 Jenkins `ansible-ssh-key` 凭据 + bj-01 自管理，且对象是生产节点，拆出独立任务做（见 §6） |
 
+### 2.7 落地阶段确定与修订的关键决策
+
+本主题在 runbook 落稿与 D-2 节点准备阶段，对 proposal 初稿的若干设计点做了确定或修订。下表汇总"原设计 → 最终决策 → 为什么"，[`runbooks/v1.7-to-v1.8.md`](../runbooks/v1.7-to-v1.8.md) 按此执行；§5 待确认问题中 Q1-Q6 由本节结清。
+
+#### 2.7.1 节点选型确定（回填 §5 Q1-Q4）
+
+| 节点 | 云厂商·城市 | 系统 | 规格 | bootstrap 公网 IP | registry mirror |
+|---|---|---|---|---|---|
+| gz-04 | 百度云·广州 | Ubuntu 24.04（noble，Python 3.12 / PEP 668） | 2C4G / 80G | 182.61.39.35 | `https://mirror.baidubce.com` |
+| gz-05 | 腾讯云·广州 | Ubuntu 22.04（jammy，Python 3.10） | 2C4G / 70G | 43.138.186.227 | `https://mirror.ccs.tencentyun.com` |
+
+两台**发行版与 codename 不同**（noble vs jammy），这是下面"apt codename 动态取"决策的直接动因；规格与延迟以接入后实测为准，写入 `architecture/v1.8.md`。
+
+#### 2.7.2 设计修订对照
+
+| 决策点 | proposal 初稿设计 | 落地最终决策 | 为什么改 |
+|---|---|---|---|
+| Docker 版本管理 | 用 `docker_ce_version` 等变量锁定具体版本号，靠"版本一致则 `changed=0`"保证幂等 | `docker-ce` 用 `state=present` 安装，**不锁版本**，删除 `docker_ce_version` 变量 | `state=present` 对已装节点重复执行**绝不升级**，从根上消除误触 daemon reload 风险；锁版本号反而要为 noble/jammy 两套系统各维护一串 `~ubuntu.24.04~noble` 形态版本字符串，维护成本高且易写错。代价是不同时间装的节点版本可能不同——本主题两台同时装，版本以实测为准并记入架构快照 |
+| apt 仓库 codename | group_vars 写死单一 `tailscale_apt_distribution: "bookworm"` 与 `debian.12~bookworm` 版本串 | Docker / Tailscale 的 apt codename 均由各节点 `ansible_distribution_release` **动态取**，不写全局变量 | 两台是 Ubuntu 且 codename 不同，写死单一 codename 必给其中一台装错源；初稿的 `bookworm`（Debian）更是与实际系统（Ubuntu）不符 |
+| `global_gateway` 网络类型 | 初稿表述为"overlay 网络" | 实为**各主机本地 `bridge` 网络**（`driver: bridge`，非跨主机 overlay），各节点独立创建 | 现有四台节点的 `global_gateway` 本就是单机 bridge，容器经它做主机内互通；项目未引入 Swarm/overlay 控制面，overlay 系初稿措辞错误，按事实修正 |
+| 公网 22 端口 | §3 / Q5 建议接入后只放行 Tailscale 网段、关闭公网 22 | 本次**不关闭公网 22** | 两台 bootstrap 前已禁用 SSH 密码登录、仅密钥认证，暴露面可接受；关端口属人工控制台动作、收益有限，留作后续按需收紧，不阻塞本主题 |
+| 老四台 docker-daemon 执行 | §3 表述为"先在新节点跑通，再单独评估是否对现有节点执行" | 明确**本次只对 gz-04/05 执行**（决策 B1），老四台本轮不跑 docker-daemon | 老四台带真实业务流量（gz-03 是 MySQL Master），即便 `state=present` 不升级，也应单独安排窗口验证；本主题边界是"新节点接入"，不顺带动生产运行时 |
+
+> 上述修订只改实现方式与边界，不改本主题"六节点基础接入、不承载业务工作负载"的目标与验收口径。
+
 ---
 
 ## 3. 影响范围
@@ -173,11 +191,11 @@ admin_alex_authorized_keys:
 |---|---|
 | 现有四台节点 base-access role | **纯追加**：在 gz-01/02/03/bj-01 上首次创建 admin-alex + 授权公钥 + NOPASSWD sudoers，不删除 root、不改 root 的 authorized_keys、不改 `ansible_user`。即使本次只想动新节点，对老节点跑 base-access 也是安全的增量操作；admin-alex 建好但暂不作为连接用户 |
 | Jenkins `ansible-ssh-key` 凭据 | **本主题不动**。CD Pipeline 仍以凭据里的 root 用户名 + 私钥连各节点；本主题只把该私钥对应公钥提前授权给 admin-alex，不改凭据本身，CD 行为零变化 |
-| 现有四台节点 docker-daemon role | 首次执行新版 role 时：① 如本地 Docker 版本与 `docker_ce_version` 一致则 `changed=0`，否则**会触发 docker-ce apt 升级**，对运行容器有 daemon reload 风险 → 落地节奏：先在新节点 gz-04 / gz-05 上跑通新 role，再单独评估是否对现有节点执行升级；inventory 默认值锁定为现有节点已运行的版本，避免误升级 |
+| 现有四台节点 docker-daemon role | 本次**不对老四台执行**（决策 B1，见 §2.7）。`docker-ce` 采用 `state=present` 不锁版本，未来对老节点执行时已装版本不会被升级，无 daemon reload 风险；老四台收编仍单独安排窗口验证 |
 | 现有四台节点 `global_gateway` 网络 | 新增 `community.docker.docker_network` 任务在已存在网络上 `state=present`，幂等行为为 `changed=0`；如检测到 driver / subnet 不一致则报错而非自动重建，安全 |
 | Prometheus targets | `prometheus.yml.j2` 新增 gz-04 / gz-05 的 node-exporter target，需在 bootstrap 完成、Tailscale IP 回填 inventory 后才能生效；落地节奏走两次提交（详见 §6） |
 | Grafana 面板 | 现有 Node Exporter 面板自动按 `instance` label 展示新节点，无需改 dashboard JSON |
-| 公网 SSH 端口 | bootstrap 期间通过公网 IP 经 admin-alex SSH 进 gz-04 / gz-05；接入完成后建议在云厂商安全组只放行 Tailscale 网段（100.64.0.0/10），关闭公网 22；具体安全组动作由人工在云厂商控制台操作，不进 Ansible 范围 |
+| 公网 SSH 端口 | bootstrap 期间通过公网 IP 经 admin-alex SSH 进 gz-04 / gz-05；本次**不关闭公网 22**（决策见 §2.7：两台已禁用密码登录、仅密钥认证，风险可接受）；后续如需收紧再在云厂商控制台只放行 Tailscale 网段（100.64.0.0/10），不进 Ansible 范围 |
 | `vault/secrets.yml` | 新增 1 项 `tailscale_authkey`，对加密文件做增量更新 |
 | 业务工作负载 | 无影响。本主题 gz-04 / gz-05 不加入 `app_nodes` / `db_*` / `redis_*` / `gateway_nodes` / `monitor_nodes` 等业务分组，site.yml 任何业务相关 play 都不会调度到这两台 |
 | CI/CD Pipeline | 无影响。本主题不涉及 Jenkinsfile 与 Registry |
@@ -193,7 +211,7 @@ admin_alex_authorized_keys:
 | admin-alex 供给（6 台全节点） | 每台 `getent passwd admin-alex` 存在；从 bj-01 经 admin-alex 公钥可 `ssh admin-alex@<节点>`；`ssh admin-alex@<节点> sudo -n true` 返回 0（NOPASSWD 生效）；`sudo visudo -cf /etc/sudoers.d/admin-alex` 校验通过 |
 | 现有四台节点连接方式不变 | base-access 跑完后，gz-01/02/03/bj-01 的 `ansible_user` 仍为 root；`ansible all -m ping` 经 root 全绿；root 的 authorized_keys 未被改动；CD Pipeline 一次部署仍以 root 连接成功 |
 | SSH 切换（仅新节点） | bootstrap 完成后，从 bj-01 经 `ssh admin-alex@<gz-04 Tailscale IP>` 可登录并 `sudo -n true`；gz-04/05 的 `ansible_user` 已是 admin-alex，`ansible gz-04,gz-05 -m ping` 经 admin-alex + become 全绿；公网 IP SSH 不再使用（关闭与否走人工节奏） |
-| Docker 运行时 | `docker info` 输出 Server Version 与 `docker_ce_version` 一致；`docker compose version` 与 `docker_compose_plugin_version` 一致 |
+| Docker 运行时 | gz-04 / gz-05 `docker info` 输出 Server Version 正常、`docker compose version` 正常（`state=present` 不锁版本，两台同时安装，实测版本记入架构快照） |
 | `global_gateway` 网络 | gz-04 / gz-05 上 `docker network ls` 可见 `global_gateway`；现有四台节点重跑 docker-daemon role 后 `global_gateway` driver / subnet 与 role 期望一致，`changed=0` |
 | Prometheus 抓取 | Prometheus UI `up{instance="<gz-04 Tailscale IP>:9100"} == 1` 与 `up{instance="<gz-05 Tailscale IP>:9100"} == 1` |
 | mysqld-exporter 边界 | gz-04 / gz-05 上 `docker ps` 不可见 `mysqld-exporter` 容器；Prometheus targets 中 mysqld-exporter job 仅含 gz-02 / gz-03 / bj-01 |
@@ -204,21 +222,21 @@ admin_alex_authorized_keys:
 
 ---
 
-## 5. 待确认问题
+## 5. 待确认问题（落地阶段已大部分结清）
 
-下表的"占位值"在 proposal 阶段写入 `group_vars/all.yml` 与 inventory，**runbook 起步前必须由人工实地确认后回填**——这些值取决于云厂商选型与节点开机后的实测信息。
+下表初稿的"占位值"在 runbook 落稿与 D-2 节点准备阶段已确定，最终值与决策见 §2.7；仅余 Q7 的 Jenkins 公钥需在 D-1 回填。
 
-| 序号 | 待确认项 | 影响 | 触发节奏 |
-|---|---|---|---|
-| Q1 | gz-04 / gz-05 云厂商与城市内可用区 | 决定 `inventory/hosts.yml` 主机变量中是否需要加 `docker_registry_mirrors`（与现有 gz-02 腾讯云、gz-03 火山引擎做法对齐） | runbook 起步前 |
-| Q2 | gz-04 / gz-05 系统发行版与版本（Debian / Ubuntu / 版本号） | 决定 `tailscale_apt_distribution`、Docker 官方 apt 仓库 codename、`extra_args` PEP 668 判断分支 | runbook 起步前 |
-| Q3 | gz-04 / gz-05 具体规格（CPU / 内存 / 磁盘 / 带宽） | 路线图说"广州 4G 节点"，需实测确认；影响 [`k3s-stateless`](../scheme/phase-1-architecture-upgrade.md#k3s-stateless) 主题的资源边界 | runbook 起步前；架构快照"节点总览"段必须填实际值 |
-| Q4 | 公网 IP（用于 bootstrap） | bootstrap playbook `-e ansible_host=<...>` 命令的实际值 | bootstrap 当天 |
-| Q5 | 接入后是否立即关闭公网 22 端口 | 安全收紧节奏；建议是"接入 + 验收完成后立即关"，但操作在云厂商控制台进行，需要人工节奏决定 | 验收完成后 |
-| Q6 | `docker_ce_version` 锁定到哪个具体版本号 | 决定现有四台节点首次跑新版 docker-daemon role 是否触发升级；建议先在 bj-01 运行 `dpkg -l docker-ce` 取当前版本作为锁定基线，避免误升级 | runbook 起步前 |
-| Q7 | `admin_alex_authorized_keys` 收哪几把公钥 | 至少含运维操作机 admin-alex 公钥 + Jenkins `ansible-ssh-key` 凭据对应公钥；从现有 root `~/.ssh/authorized_keys` 与 Jenkins 凭据导出后回填 | runbook 起步前 |
+| 序号 | 待确认项 | 状态 / 最终结论 |
+|---|---|---|
+| Q1 | gz-04 / gz-05 云厂商与可用区 | ✅ 已定：gz-04 百度云·广州、gz-05 腾讯云·广州；`docker_registry_mirrors` 分别为 `mirror.baidubce.com` / `mirror.ccs.tencentyun.com`（见 §2.7.1） |
+| Q2 | gz-04 / gz-05 系统发行版与版本 | ✅ 已定：gz-04 Ubuntu 24.04 noble（Python 3.12 / PEP 668）、gz-05 Ubuntu 22.04 jammy；apt codename 改为按 `ansible_distribution_release` 动态取（见 §2.7.2） |
+| Q3 | gz-04 / gz-05 具体规格 | ✅ 已定：均 2C4G，磁盘 gz-04 80G / gz-05 70G（见 §2.7.1）；架构快照"节点总览"以实测为准 |
+| Q4 | bootstrap 公网 IP | ✅ 已定：gz-04 182.61.39.35、gz-05 43.138.186.227 |
+| Q5 | 接入后是否关闭公网 22 端口 | ✅ 已决：本次不关闭（已禁密码登录、仅密钥认证，见 §2.7.2） |
+| Q6 | `docker_ce_version` 锁定版本 | ✅ 已改：取消锁版本，改用 `state=present`（见 §2.7.2），该问题作废 |
+| Q7 | `admin_alex_authorized_keys` 收哪几把公钥 | 🔶 部分：bj-01 Ansible 控制节点公钥已确定；Jenkins `ansible-ssh-key` 凭据公钥待 D-1 从凭据导出回填 |
 
-待确认项不构成 proposal 阶段的阻塞——proposal 当前框架是稳定的，Q1-Q6 是落地动作里需要回填的具体数值，不影响主题方案设计。
+Q1-Q6 已由 §2.7 结清，不再构成落地阻塞；Q7 仅剩一项公钥回填，属 D-1 准备动作，不影响主题方案设计。
 
 ---
 
@@ -262,7 +280,7 @@ admin_alex_authorized_keys:
 | **proposal 评审** | 当前文档评审通过 | 本次完成 |
 | **路线图修订** | 同 PR 提交 `phase-1-architecture-upgrade.md` 中 `six-node-onboarding` 与 `base-reproducibility-fix` 两段的描述修订 | 与本 proposal 同 PR |
 | **节点准备 D-2** | 人工 / cloud-init 在 gz-04 / gz-05 创建 admin-alex 用户、写 SSH key、配 NOPASSWD sudoers | 主题启动前 |
-| **节点准备 D-1** | 回填 §5 的 Q1-Q4、Q6、Q7 实测值；Tailscale 控制台生成 reusable + preauthorized + tag:server 的 auth key，写入 vault `tailscale_authkey`；收集 `admin_alex_authorized_keys` 公钥列表 | 主题启动前 |
+| **节点准备 D-1** | Q1-Q6 已由 §2.7 结清，仅需回填 §5 Q7 的 Jenkins `ansible-ssh-key` 公钥；Tailscale 控制台生成 reusable + preauthorized + tag:server 的 auth key，写入 vault `tailscale_authkey` | 主题启动前 |
 | **D-0 开工** | 按 `.cursor/rules/10-docs-workflow.mdc` §1 九步流程：role 改造（base-access + tailscale + docker-daemon）→ runbook → base-access 收敛 6 台 admin-alex（纯追加）→ bootstrap 执行（公网 IP）→ Tailscale IP 回填 inventory（**第二次提交**）→ Prometheus targets 更新（**第三次提交**）→ retrospective → 架构快照 → tag | proposal 评审 + 节点准备完成 |
 | **后续接力（K3s）** | 进入 [`k3s-stateless`](../scheme/phase-1-architecture-upgrade.md#k3s-stateless) 主题，gz-04 / gz-05 直接作为 K3s 控制面 + worker | 本主题 retrospective 通过 |
 | **后续接力（鉴权 cutover）** | 按 §6.3 checklist 翻转 4 台老节点 `ansible_user` + 切换 Jenkins 凭据 + 评估关 root 登录；并入 [`cicd-state-iac`](../scheme/phase-1-architecture-upgrade.md#cicd-state-iac) 或单列小任务 | 本主题 base-access 在 4 台老节点验收通过后 |
