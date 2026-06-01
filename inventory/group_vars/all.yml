@@ -125,3 +125,11 @@ grafana_host: "{{ hostvars[groups['monitor_nodes'][0]].ansible_host }}"
 
 # Jenkins 主机 IP，用于反向代理
 jenkins_host: "{{ hostvars[groups['ops_nodes'][0]].ansible_host }}"
+
+# ── 节点接入身份（base-access role，v1.8）──────────────────────────────────────
+# admin-alex 为 6 台节点统一的运维身份；公钥非敏感，可明文进 Git。
+# 私钥与 vault 凭据不在本主题改动范围。
+access_user: admin-alex
+admin_alex_authorized_keys:
+  # bj-01 Ansible 控制节点 + Jenkins ansible-ssh-key 凭据共用同一私钥（~/.ssh/id_ed25519_ansible）
+  - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPnqXKc4QvZdqHgM4Pa56EgdwfS5Ydo+G46ef2jh6POi bj-01-ansible"
