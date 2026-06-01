@@ -97,6 +97,7 @@
 | [runbooks/v1.4-to-v1.5.md](runbooks/v1.4-to-v1.5.md) | V1.4 → V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警系统操作手册（8 个 Phase） |
 | [runbooks/v1.5-to-v1.6.md](runbooks/v1.5-to-v1.6.md) | V1.5 → V1.6 | 私有 Registry + ruoyi CI/CD 全链路操作手册                                       |
 | [runbooks/v1.6-to-v1.7.md](runbooks/v1.6-to-v1.7.md) | V1.6 → V1.7 | MySQL 逻辑备份 + OSS 上传 + bj-01 恢复演练操作手册                                    |
+| [runbooks/v1.7-to-v1.8.md](runbooks/v1.7-to-v1.8.md) | V1.7 → V1.8 | 六节点基础接入：gz-04/gz-05 Tailscale + Docker Engine + node-exporter 纳管，base-access 在 6 台纯追加 admin-alex（8 个 Phase / 三次提交） |
 
 
 ### retrospectives/
