@@ -2,6 +2,17 @@
 - name: Configure Docker daemon
   hosts: all
   become: true
+  gather_facts: false
+  pre_tasks:
+    # docker-daemon 依赖 facts；先用 raw 修好 remote_tmp，再手动收集 facts。
+    - name: Ensure Ansible remote tmp directory is shared-safe
+      ansible.builtin.raw: install -d -o root -g root -m 1777 /tmp/.ansible-tmp
+      check_mode: false
+      changed_when: false
+
+    - name: Gather facts after remote tmp is ready
+      ansible.builtin.setup:
+
   roles:
     - role: docker-daemon
       tags: [infra, docker-daemon]
