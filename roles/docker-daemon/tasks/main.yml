@@ -1,5 +1,12 @@
 ---
 # ── Docker Engine 安装（v1.8 新增；官方 apt 仓库，codename 动态取）─────────────
+- name: Check Docker CLI availability
+  ansible.builtin.command: docker --version
+  register: docker_cli_check
+  changed_when: false
+  check_mode: false
+  failed_when: docker_cli_check.rc not in [0, 127]
+
 - name: Install prerequisites for Docker apt repo
   ansible.builtin.apt:
     name:
@@ -7,24 +14,29 @@
       - curl
     state: present
     update_cache: true
+  when: docker_cli_check.rc != 0
 
 - name: Ensure apt keyrings directory exists
   ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
     mode: "0755"
+  when: docker_cli_check.rc != 0
 
 - name: Check Docker official GPG key
   ansible.builtin.stat:
     path: /etc/apt/keyrings/docker.asc
   register: docker_gpg_key
+  when: docker_cli_check.rc != 0
 
 - name: Add Docker official GPG key
   ansible.builtin.get_url:
     url: "https://download.docker.com/linux/ubuntu/gpg"
     dest: /etc/apt/keyrings/docker.asc
     mode: "0644"
-  when: not docker_gpg_key.stat.exists
+  when:
+    - docker_cli_check.rc != 0
+    - not docker_gpg_key.stat.exists
 
 - name: Add Docker apt repository
   ansible.builtin.apt_repository:
@@ -34,6 +46,7 @@
       https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
     filename: docker
     state: present
+  when: docker_cli_check.rc != 0
 
 # state=present：已装 docker-ce 的节点重复执行不会被升级（避免误触 daemon reload）。
 - name: Install Docker Engine and compose plugin
@@ -46,6 +59,7 @@
       - docker-compose-plugin
     state: present
     update_cache: true
+  when: docker_cli_check.rc != 0
 
 # Debian/Ubuntu 仓库内置的 python3-docker 版本可能落后于当前 Docker SDK，
 # 先移除 apt 包，避免后续 pip 安装的 SDK 与系统包混用。
