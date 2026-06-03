@@ -1,0 +1,25 @@
+---
+# 纯追加：在 6 台节点幂等创建 admin-alex + 授权公钥 + NOPASSWD sudoers，不删除 root。
+- name: Ensure access user exists
+  ansible.builtin.user:
+    name: "{{ access_user }}"
+    shell: /bin/bash
+    create_home: true
+    state: present
+
+- name: Authorize access user SSH keys
+  ansible.posix.authorized_key:
+    user: "{{ access_user }}"
+    key: "{{ item }}"
+    state: present
+    exclusive: false        # 追加，不覆盖既有公钥
+  loop: "{{ admin_alex_authorized_keys }}"
+
+- name: Grant NOPASSWD sudo to access user
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ access_user }}"
+    content: "{{ access_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    mode: "0440"
+    owner: root
+    group: root
+    validate: "visudo -cf %s"   # 写入前校验，避免坏配置锁死 sudo

@@ -1,0 +1,14 @@
+---
+- name: Converge node access identity (admin-alex)
+  hosts: managed_nodes
+  become: true
+  gather_facts: false
+  pre_tasks:
+    # raw 不依赖远端 Python 模块临时目录，适合修复 remote_tmp 本身的权限。
+    - name: Ensure Ansible remote tmp directory is shared-safe
+      ansible.builtin.raw: install -d -o root -g root -m 1777 /tmp/.ansible-tmp
+      check_mode: false
+      changed_when: false
+
+  roles:
+    - base-access
