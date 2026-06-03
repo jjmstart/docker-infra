@@ -1,0 +1,62 @@
+---
+# 幂等思路：先看当前 backend 是否已 Running，已接入则跳过安装与 up，避免重复入网。
+- name: Check current Tailscale backend state
+  ansible.builtin.command: tailscale status --json
+  register: ts_status
+  changed_when: false
+  failed_when: false
+
+- name: Set tailscale_connected fact
+  ansible.builtin.set_fact:
+    tailscale_connected: >-
+      {{ (ts_status.rc == 0)
+         and ((ts_status.stdout | from_json).BackendState | default('')) == 'Running' }}
+
+# apt codename 按各节点系统动态取（gz-04=noble / gz-05=jammy），不写死全局变量。
+- name: Add Tailscale apt GPG keyring
+  ansible.builtin.get_url:
+    url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.noarmor.gpg"
+    dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+    mode: "0644"
+  when: not tailscale_connected
+
+- name: Add Tailscale apt source list
+  ansible.builtin.get_url:
+    url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.tailscale-keyring.list"
+    dest: /etc/apt/sources.list.d/tailscale.list
+    mode: "0644"
+  when: not tailscale_connected
+
+- name: Install tailscale
+  ansible.builtin.apt:
+    name: tailscale
+    state: present
+    update_cache: true
+  when: not tailscale_connected
+
+# authkey 来自 vault，加 no_log 防止泄漏到日志。
+- name: Bring up Tailscale (join tailnet)
+  ansible.builtin.command: >-
+    tailscale up
+    --authkey={{ tailscale_authkey }}
+    --hostname={{ inventory_hostname }}
+    --ssh=false
+  register: ts_up
+  changed_when: ts_up.rc == 0
+  no_log: true
+  when: not tailscale_connected
+
+# tailscale ip -4 在 IP 分配完成前会短暂失败（exit 1），用 until 等它就绪，避免
+# "tailscale up 刚返回 → 立即读 status" 的时序竞争导致 TailscaleIPs 为空。
+- name: Wait for Tailscale IPv4 assignment
+  ansible.builtin.command: tailscale ip -4
+  register: ts_ipv4
+  until: ts_ipv4.rc == 0 and ts_ipv4.stdout | trim | regex_search('^100\\.')
+  retries: 12
+  delay: 5
+  changed_when: false
+
+# 输出 Tailscale IPv4，用于 Phase 6 回填 inventory。
+- name: Show Tailscale IPv4 for inventory backfill
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }} Tailscale IPv4 = {{ ts_ipv4.stdout | trim }}"

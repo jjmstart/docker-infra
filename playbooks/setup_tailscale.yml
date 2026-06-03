@@ -1,0 +1,19 @@
+---
+- name: Bootstrap Tailscale on managed nodes
+  hosts: managed_nodes
+  become: true
+  gather_facts: false
+  vars_files:
+    - ../vault/secrets.yml   # 提供 tailscale_authkey
+  pre_tasks:
+    # raw 不依赖远端 Python 模块临时目录；先修好 remote_tmp，再收集 facts 和执行 role。
+    - name: Ensure Ansible remote tmp directory is shared-safe
+      ansible.builtin.raw: install -d -o root -g root -m 1777 /tmp/.ansible-tmp
+      check_mode: false
+      changed_when: false
+
+    - name: Gather facts after remote tmp is ready
+      ansible.builtin.setup:
+
+  roles:
+    - tailscale
