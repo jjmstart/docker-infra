@@ -2,15 +2,17 @@
 
 ## 阶段目标
 
-将 `docker-infra` 集群从 v1.5 路线起点延伸至 v2.0，当前已落地到 v1.7。每个子任务对应一个架构版本，每版本完成后需按文档规范完成 proposal → runbook → retrospective → 架构快照的完整流程。
+将 `docker-infra` 集群从 v1.5 路线起点延伸至 v2.0，当前已落地到 v1.8（六节点基础接入，`arch-v1.8` 已推送）。每个子任务对应一个架构版本，每版本完成后需按文档规范完成 proposal → runbook → retrospective → 架构快照的完整流程。
 
 **当前起点**：v1.7 已完成备份恢复最小闭环（gz-03 mysqldump 逻辑备份 + 阿里云 OSS 上传 + bj-01 恢复演练，实测 RTO 34 秒），已通过端到端验收，Git tag `arch-v1.7` 已推送。
 
 **历史路线调整记录**：v1.7 全量复盘中曾计划先补齐基础可复现性、ProxySQL HA、Redis Sentinel 边界与 CI/CD 状态管理，再推进六节点接入和 K3s；随后又将 Dead Man's Switch（DMS）告警出口冗余拆成独立主题，以覆盖 Alertmanager / prometheus-alert / bj-01 整机故障时的出口端单点。以上问题仍保留在 phase-1 路线中，但不再阻塞 K3s 前置。
 
-**v1.8-v1.12 路线重排**：考虑到 K8s / K3s 已成为云运维与 DevOps 岗位的关键能力，且 gz-04 / gz-05 两台广州 4G 节点已就位，phase-1 将 K3s 能力前置：v1.8 先完成六节点基础接入，v1.9 在 gz-05 server+agent + gz-04 worker 的双节点 K3s 上迁移 ruoyi 无状态后端，v1.10 将 ruoyi 裸 YAML Helm Chart 化，v1.11 再把 gz-01 的入口与主监控职责迁到 gz-04，v1.12 以 Helm 在 K3s 上部署 Loki，形成 K3s → Helm → 入口/监控迁移 → 日志栈的连续主线。
+**v1.8-v1.12 路线重排**：考虑到 K8s / K3s 已成为云运维与 DevOps 岗位的关键能力，且 gz-04 / gz-05 两台广州 4G 节点已就位，phase-1 将 K3s 能力前置：v1.8 已完成六节点基础接入，v1.9 在 gz-05 server+agent + gz-04 / gz-06 worker 的三节点 K3s 上迁移 ruoyi 无状态后端，v1.10 将 ruoyi 裸 YAML Helm Chart 化，v1.11 再把 gz-01 的入口与主监控职责迁到 gz-04，v1.12 以 Helm 在 K3s 上部署 Loki，形成 K3s → Helm → 入口/监控迁移 → 日志栈的连续主线。
 
-**有意识不做的事**：不在本阶段引入抢占式实例、Cluster Autoscaler 或跨云动态扩缩容。当前 ruoyi 业务没有真实流量峰谷，抢占式实例池、自动入网、节点回收优雅迁移与多云 API 适配会显著放大复杂度，且难以在面试中用真实业务指标支撑。本阶段只验证双节点 K3s、固定节点调度、滚动更新、回滚、故障演练与 Helm 管理。
+**gz-06 节点引入（2026-06，常驻 K3s worker）**：v1.8 落地后新增腾讯云·广州 4C4G 节点 gz-06，定位**常驻 K3s worker**。引入动因是 v1.11 [`service-migration`](#service-migration) 要 gz-04 接管 gz-01 的 Nginx 入口 + 主监控职责，若 gz-04 同时仍是唯一 worker，2C4G 上叠加监控栈与 ruoyi Pod 会内存吃紧；增加一台**常驻** worker（非抢占式 / 非按量销毁式）让 v1.11 时 gz-04 可退出 worker 池只承载入口/监控，ruoyi 副本落到 gz-06 + gz-05，全程不引入动态入网 / 节点回收复杂度。注意 gz-06 内存仍为 4G（与 gz-04/gz-05 同档），优势在 4 核 CPU 与"多一台节点摊负载"，绑定约束依旧是内存。**至此 7 台节点角色解耦完整，phase-1 余下版本只做"用透现有节点"，不再扩节点**——再扩需先有"现有节点哪个具体能力被卡住"的硬理由（见 `.cursor/rules/00-project-context.mdc` 节点扩容红线）。
+
+**有意识不做的事**：不在本阶段引入抢占式实例、Cluster Autoscaler 或跨云动态扩缩容。当前 ruoyi 业务没有真实流量峰谷，抢占式实例池、自动入网、节点回收优雅迁移与多云 API 适配会显著放大复杂度，且难以在面试中用真实业务指标支撑。本阶段只验证固定三节点 K3s（gz-05 server + gz-04/gz-06 worker）、固定节点调度、滚动更新、回滚、故障演练与 Helm 管理。
 
 **v1.13-v1.18 收尾顺序**：DMS、基础可复现性、ProxySQL HA、Redis Sentinel 边界、CI/CD 状态 IaC 化顺延到 v1.13-v1.17；`observability-integration` 从 v2.0 拆出为 v1.18 压轴主题，在监控、告警、日志、HA 与 CI/CD 状态管理均具备后做统一 Dashboard 与告警调优。v2.0 不再承载新技术主题，仅作为 phase-1 收束版本：发布最终架构快照、阶段复盘与 `arch-v2.0` tag。
 
@@ -25,8 +27,8 @@
 | `alerting-mvp` | 告警系统 | v1.5 | ✅ 已完成 |
 | `app-cd-pipeline` | 应用交付流水线（镜像构建推送） | v1.6 | ✅ 已完成 |
 | `backup-restore-mvp` | 备份恢复最小闭环 | v1.7 | ✅ 已完成 |
-| `six-node-onboarding` | 六节点基础接入（gz-04/gz-05 Tailscale + Docker + 监控纳管） | v1.8 | 待开始 |
-| `k3s-stateless` | K3s 迁移无状态服务（gz-05 server+agent + gz-04 worker） | v1.9 | 待开始 |
+| `six-node-onboarding` | 六节点基础接入（gz-04/gz-05 Tailscale + Docker + 监控纳管） | v1.8 | ✅ 已完成 |
+| `k3s-stateless` | K3s 迁移无状态服务（gz-05 server+agent + gz-04 / gz-06 worker） | v1.9 | 待开始 |
 | `helm-chart-mgmt` | Helm Chart 管理 K3s 应用 | v1.10 | 待开始 |
 | `service-migration` | 服务迁移（gz-01 入口/监控迁至 gz-04 + watchdog） | v1.11 | 待开始 |
 | `loki-logging` | Loki 日志集中管理（K3s + Helm） | v1.12 | 待开始 |
@@ -181,15 +183,17 @@ gz-04 / gz-05 已作为广州 4G 节点就位，后续 [`k3s-stateless`](#k3s-st
 
 当前若依后端（ruoyi-admin）以 Docker Compose 方式运行在 gz-03 和 gz-02 上。本主题目标是在不动有状态服务（MySQL、Redis、ProxySQL）的前提下，将 ruoyi 后端迁移到 K3s，验证 Kubernetes 基础工作流，并为后续 Helm、Loki、可观测性整合打基础。
 
-K3s 拓扑采用 **gz-05 server+agent + gz-04 worker**：gz-05 作为单 control-plane 节点，同时允许调度业务 Pod；gz-04 作为 worker 节点。ruoyi Deployment 使用 2 副本，通过 `topologySpreadConstraints` 或等效反亲和策略尽量分布到 gz-04 / gz-05 两个节点。gz-03 保持 MySQL Master / Redis Master / ProxySQL 主链路职责，不加入 K3s worker，避免把 K3s 故障面叠加到业务主节点。
+K3s 拓扑采用 **gz-05 server+agent + gz-04 worker + gz-06 worker**：gz-05 作为单 control-plane 节点，同时允许调度业务 Pod；gz-04 / gz-06 作为 worker 节点。ruoyi Deployment 使用 2 副本，通过 `topologySpreadConstraints` 或等效反亲和策略分布到 gz-04 / gz-06 两个专职 worker。gz-03 保持 MySQL Master / Redis Master / ProxySQL 主链路职责，不加入 K3s worker，避免把 K3s 故障面叠加到业务主节点。
+
+> **gz-06 引入后的前瞻**：本主题（v1.9）gz-04 仍是 worker；到 v1.11 [`service-migration`](#service-migration) gz-04 接管 Nginx 入口 + 主监控后退出 worker 池，ruoyi 副本由 gz-06 + gz-05 承载。引入常驻 worker gz-06（非抢占式 / 非按量销毁式）正是为了让 v1.11 的 gz-04 退池有去处，且不引入动态入网复杂度。gz-06 onboarding（Tailscale `--hostname gz-06` + base-access + docker-daemon + node-exporter，同 v1.8 流程）是本主题 K3s 安装的前置。
 
 ### 关键决策
 
 | 决策点 | 选型 | 理由 |
 |---|---|---|
 | K8s 发行版 | K3s | 单 binary、资源占用低，适合 4G 内存节点；对中小型公司场景更贴近，不引入完整 kubeadm 集群复杂度 |
-| 控制面拓扑 | gz-05 单 server | 当前只有两个广州空闲节点，2 节点 etcd 不能形成真正 quorum HA，反而比单 server 更脆弱；本主题目标是验证 K8s 工作流，不假装控制面 HA |
-| worker 拓扑 | gz-04 worker + gz-05 可调度 | 支持 2 副本跨节点分布、滚动更新和节点 drain 演练；不把 gz-03 业务主节点加入 K3s |
+| 控制面拓扑 | gz-05 单 server | 3 节点 K3s 仍只设单 control-plane：etcd quorum HA 需 3 个 server 节点，本主题 gz-04/gz-06 是 agent worker 不是 server，凑不齐 server quorum；本主题目标是验证 K8s 工作流，不假装控制面 HA |
+| worker 拓扑 | gz-04 worker + gz-06 worker（+ gz-05 可调度） | 两个专职 worker 支持 2 副本跨节点分布、滚动更新和节点 drain 演练；gz-06 为常驻 worker，保证 v1.11 gz-04 退池后仍有 worker 承载；不把 gz-03 业务主节点加入 K3s |
 | 有状态服务 | MySQL / Redis / ProxySQL 继续 Compose | 避免引入 PV、网络存储、数据库 Operator 和复杂故障恢复；K3s 只承载无状态业务服务 |
 | 弹性扩缩容 | 不做抢占式实例 / Cluster Autoscaler | 当前没有真实流量峰谷，动态节点池会放大自动入网、节点回收、监控注册和多云 API 复杂度 |
 
@@ -198,9 +202,9 @@ K3s 拓扑采用 **gz-05 server+agent + gz-04 worker**：gz-05 作为单 control
 **K3s 集群部署**
 
 - gz-05 安装 K3s server，启用 agent 调度能力
-- gz-04 以 K3s agent 加入 gz-05 集群
+- gz-04 / gz-06 以 K3s agent 加入 gz-05 集群
 - 配置 containerd 访问现有 bj-01 私有 Registry，避免为 K3s 单独引入新镜像仓库
-- 验证 `kubectl get nodes -o wide` 中 gz-04 / gz-05 均为 `Ready`
+- 验证 `kubectl get nodes -o wide` 中 gz-04 / gz-05 / gz-06 均为 `Ready`
 
 **ruoyi 后端迁移**
 
@@ -219,12 +223,12 @@ K3s 拓扑采用 **gz-05 server+agent + gz-04 worker**：gz-05 作为单 control
 
 - 故意发布不存在的镜像 tag，观察 `ImagePullBackOff` 并通过 `kubectl describe pod` 定位原因
 - 故意配错 readinessProbe，观察 rollout 卡住并通过 events / `kubectl rollout status` 定位原因
-- 对 gz-04 执行受控 `kubectl drain`，验证 Pod 可迁移到 gz-05，并记录业务可用性影响
+- 对 gz-04 执行受控 `kubectl drain`，验证 gz-04 副本被驱逐后的业务可用性影响；在 gz-05 稳态不承载业务 Pod 的约束下，记录第二副本落到 gz-06 或 Pending 的实际结果
 
 ### 验收标准
 
-- `kubectl get nodes` 显示 gz-04 / gz-05 均 `Ready`
-- `kubectl get pods -o wide` 显示 ruoyi 双副本运行，且尽量分布到两个节点
+- `kubectl get nodes` 显示 gz-04 / gz-05 / gz-06 均 `Ready`
+- `kubectl get pods -o wide` 显示 ruoyi 双副本运行，且分布到 gz-04 / gz-06 两个专职 worker
 - 公网域名经 gz-01 Nginx 可访问 K3s 上的 ruoyi 服务
 - 滚动更新新镜像 tag 期间服务不中断；`kubectl rollout undo` 可回滚上一版本
 - `ImagePullBackOff`、readinessProbe 错误、worker drain 三类故障演练均有记录
@@ -300,9 +304,9 @@ charts/ruoyi/
 
 ### 背景
 
-[`k3s-stateless`](#k3s-stateless) 与 [`helm-chart-mgmt`](#helm-chart-mgmt) 已经让 ruoyi 后端稳定运行在 gz-04 / gz-05 K3s 集群中。当前 gz-01 同时承担公网入口、Prometheus、Grafana、blackbox-exporter 等职责，但资源有限，后续 [`loki-logging`](#loki-logging) 也需要更宽裕的节点承载日志写入与查询。本主题目标是在不下线现有服务的前提下，将 gz-01 的 Nginx 入口与主监控职责迁移到 gz-04，并把 gz-01 降级为轻量 watchdog 节点。
+[`k3s-stateless`](#k3s-stateless) 与 [`helm-chart-mgmt`](#helm-chart-mgmt) 已经让 ruoyi 后端稳定运行在 gz-05 单 server + gz-04/gz-06 worker 的 K3s 集群中。当前 gz-01 同时承担公网入口、Prometheus、Grafana、blackbox-exporter 等职责，但资源有限，后续 [`loki-logging`](#loki-logging) 也需要更宽裕的节点承载日志写入与查询。本主题目标是在不下线现有服务的前提下，将 gz-01 的 Nginx 入口与主监控职责迁移到 gz-04，并把 gz-01 降级为轻量 watchdog 节点。
 
-gz-02 保持现有业务副节点职责（ruoyi 历史副本、MySQL 实时从、Redis 从）不在本主题迁移；gz-04 作为 2C4G6M 节点，公网带宽更适合作为入口与监控主节点，同时已是 K3s worker，便于后续 Loki 与 Grafana 同节点集成。
+gz-02 保持现有业务副节点职责（ruoyi 历史副本、MySQL 实时从、Redis 从）不在本主题迁移；gz-04 作为 2C4G6M 节点，公网带宽更适合作为入口与监控主节点。**gz-06 引入后的拓扑调整**：本主题 gz-04 接管 Nginx 入口 + 主监控（Prometheus/Grafana/blackbox）后**退出 K3s worker 池**，ruoyi 副本改由 gz-06 + gz-05 承载，避免 2C4G 的 gz-04 同时叠加监控栈与业务 Pod 造成内存吃紧；后续 [`loki-logging`](#loki-logging) 的 Loki 仍部署在 K3s 节点（gz-05/gz-06），Grafana 在 gz-04 经内网查询 Loki，不强求同节点。退池前以 `kubectl top nodes` / `free -m` 实测基线确认 gz-06 + gz-05 双 worker 足以承载 2 副本。
 
 > **同步识别到的网关侧耦合（不在本主题修复范围）**：当前 `roles/nginx/templates/docker-compose.yml.j2:16` 把若依前端静态目录以 `./ruoyi-ui-dist:/usr/share/nginx/ruoyi:ro` 形式直接挂载进 Nginx 容器，导致**网关 compose 文件持有业务知识**——新增前端业务必须改这个 compose 并重启 Nginx。v1.0 引入 Nginx 时只有一个前端，做静态托管是单业务场景下的合理简化；本主题网关迁移会原样把这层耦合搬到 gz-04，不在本主题展开解耦。自然演进路径是后续前端走"独立 Nginx 镜像 + Ingress"，把"路由声明"从网关层下沉到 app 自身。
 
@@ -324,8 +328,9 @@ gz-02 保持现有业务副节点职责（ruoyi 历史副本、MySQL 实时从�
 
 **资源边界**
 
-- gz-04 同时承担 K3s worker、入口、Prometheus/Grafana、blackbox-exporter，必须在 runbook 中记录迁移前后的 CPU / 内存 / 磁盘基线
-- 若 gz-04 资源接近上限，优先调低 ruoyi JVM / Prometheus retention / Grafana 插件规模；是否升级规格留到实测后决策
+- gz-04 退出 K3s worker 池后承担入口（Nginx）、Prometheus/Grafana、blackbox-exporter，必须在 runbook 中记录迁移前后的 CPU / 内存 / 磁盘基线；ruoyi Pod 不再调度到 gz-04
+- 若 gz-04 资源接近上限，优先调低 Prometheus retention / Grafana 插件规模；是否升级规格留到实测后决策
+- gz-06 + gz-05 双 worker 承接 ruoyi 2 副本后，需复核两节点内存余量（gz-06 4C4G、gz-05 2C4G），必要时调 ruoyi JVM 堆
 
 ### 验收标准
 
