@@ -42,7 +42,7 @@
 | 场景                           | 应读的文件夹                                                                  |
 | ---------------------------- | ----------------------------------------------------------------------- |
 | 我想讨论下一次架构升级，还没有开始实施          | [proposals/](proposals/) → 读对应草案（如 `v1.5-alerting.md`）                  |
-| 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.7.md`（最新版）                       |
+| 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.8.md`（最新版）                       |
 | 我要开始执行某次架构演进，需要逐步操作指引        | [runbooks/](runbooks/) → 读对应版本手册（如 `v1.3-to-v1.4.md`）                   |
 | 演进刚完成，我想复盘做了什么、踩了什么坑、加深理解    | [retrospectives/](retrospectives/) → 读对应版本总结（如 `v1.2-retrospective.md`） |
 | 我想深入理解当前架构有哪些跨版本的隐性盲点         | [reviews/](reviews/) → 读对应主题审计（如 `v1.7-iac-completeness-audit.md`）      |
@@ -81,7 +81,8 @@
 | [architecture/v1.4.md](architecture/v1.4.md)     | V1.4 | Ansible + Jenkins CI/CD，git push 全自动下发配置（历史归档）                                            |
 | [architecture/v1.5.md](architecture/v1.5.md)     | V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警闭环（历史归档）                            |
 | [architecture/v1.6.md](architecture/v1.6.md)     | V1.6 | 私有 Docker Registry + ruoyi CI 自动触发 + 参数化 CD + Smoke Test + Registry GC + 飞书双机器人（历史归档） |
-| [architecture/v1.7.md](architecture/v1.7.md)     | V1.7 | mysqldump 逻辑备份 + 阿里云 OSS 上传 + bj-01 恢复演练，实测 RTO 34 秒（**当前最新**） |
+| [architecture/v1.7.md](architecture/v1.7.md)     | V1.7 | mysqldump 逻辑备份 + 阿里云 OSS 上传 + bj-01 恢复演练，实测 RTO 34 秒（历史归档） |
+| [architecture/v1.8.md](architecture/v1.8.md)     | V1.8 | 六节点基础接入：gz-04/gz-05 Tailscale + Docker Engine 29.5.2 + node-exporter；base-access 6 台纯追加 admin-alex（**当前最新**） |
 
 
 ### runbooks/
@@ -97,7 +98,7 @@
 | [runbooks/v1.4-to-v1.5.md](runbooks/v1.4-to-v1.5.md) | V1.4 → V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警系统操作手册（8 个 Phase） |
 | [runbooks/v1.5-to-v1.6.md](runbooks/v1.5-to-v1.6.md) | V1.5 → V1.6 | 私有 Registry + ruoyi CI/CD 全链路操作手册                                       |
 | [runbooks/v1.6-to-v1.7.md](runbooks/v1.6-to-v1.7.md) | V1.6 → V1.7 | MySQL 逻辑备份 + OSS 上传 + bj-01 恢复演练操作手册                                    |
-| [runbooks/v1.7-to-v1.8.md](runbooks/v1.7-to-v1.8.md) | V1.7 → V1.8 | 六节点基础接入：gz-04/gz-05 Tailscale + Docker Engine + node-exporter 纳管，base-access 在 6 台纯追加 admin-alex（8 个 Phase / 三次提交） |
+| [runbooks/v1.7-to-v1.8.md](runbooks/v1.7-to-v1.8.md) | V1.7 → V1.8 | 六节点基础接入：gz-04/gz-05 Tailscale + Docker Engine + node-exporter 纳管，base-access 在 6 台纯追加 admin-alex（8 个 Phase / 框架·接入·监控·验收四个提交检查点） |
 
 
 ### retrospectives/
@@ -113,6 +114,7 @@
 | [retrospectives/v1.5-retrospective.md](retrospectives/v1.5-retrospective.md) | V1.5 | 告警系统闭环与故障演练复盘                    |
 | [retrospectives/v1.6-retrospective.md](retrospectives/v1.6-retrospective.md) | V1.6 | 应用交付流水线全链路复盘                     |
 | [retrospectives/v1.7-retrospective.md](retrospectives/v1.7-retrospective.md) | V1.7 | 备份恢复闭环复盘（含 6 条踩坑，实测 RTO 34 秒）  |
+| [retrospectives/v1.8-retrospective.md](retrospectives/v1.8-retrospective.md) | V1.8 | 六节点基础接入复盘（含 8 条踩坑：remote_tmp 权限 / Tailscale IP 时序 / community.docker 兼容 / 镜像源解析）  |
 
 
 ### reviews/

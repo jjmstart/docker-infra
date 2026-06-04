@@ -13,3 +13,4 @@
 | [v1.5-retrospective.md](v1.5-retrospective.md) | V1.5 | 2026 年 | 告警闭环复盘：新增 Prometheus 规则、blackbox-exporter、Alertmanager 和 prometheus-alert 飞书通知组件，Phase 1-8 全部通过，arch-v1.5 tag 已打 |
 | [v1.6-retrospective.md](v1.6-retrospective.md) | V1.6 | 2026 年 | 应用交付链路复盘：私有 Docker Registry、ruoyi CI/CD 全链路打通、参数化部署回滚、Smoke Test、飞书职责分离通知、Registry GC Pipeline，全量验收通过，arch-v1.6 tag 已打 |
 | [v1.7-retrospective.md](v1.7-retrospective.md) | V1.7 | 2026 年 | 备份恢复闭环复盘：mysqldump + OSS 上传 + bj-01 恢复演练，实测 RTO 34 秒，含 IDE 未保存/RAM 授权/vault 密码文件等 6 条踩坑记录 |
+| [v1.8-retrospective.md](v1.8-retrospective.md) | V1.8 | 2026 年 6 月 | 六节点基础接入复盘：gz-04/gz-05 Tailscale + Docker + node-exporter，含 remote_tmp 权限/Tailscale IP 时序/community.docker 兼容/镜像源解析等 8 条踩坑记录 |

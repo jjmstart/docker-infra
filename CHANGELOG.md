@@ -18,49 +18,19 @@
 
 ---
 
-## [Unreleased] — V1.7 之后的准备期
+## [Unreleased]
 
-为下一版本（[`dms-outlet-redundancy`](Docs/scheme/phase-1-architecture-upgrade.md#dms-outlet-redundancy) 主题，当前规划目标 `arch-v1.8`）准备的累积变更。当前路线图见 `Docs/scheme/phase-1-architecture-upgrade.md`：下一 tag 主题为 `dms-outlet-redundancy`（Dead Man's Switch — 告警出口冗余：DMS 心跳路由到外部 SaaS，覆盖 Alertmanager / 链路 / 飞书侧三层失效域）；原"基础可复现性修复"主题（[`base-reproducibility-fix`](Docs/scheme/phase-1-architecture-upgrade.md#base-reproducibility-fix)）由此顺延至下一槽位。
+下一版本主题为 [`k3s-stateless`](Docs/scheme/phase-1-architecture-upgrade.md#k3s-stateless)（在 gz-05 server+agent + gz-04 worker 的双节点 K3s 上迁移 ruoyi 无状态后端）。当前路线图见 `Docs/scheme/phase-1-architecture-upgrade.md`。
 
-### Added
+---
 
-- 新增 `Docs/reviews/` 文档子体系，承载跨版本主题型横向复盘 (`d4ffcc4`)
-- 首篇审计 `Docs/reviews/v1.7-iac-completeness-audit.md`：从 `mysql_source_delay` 倒推出 21 个 IaC 完整性问题（10 个已修 + 11 个排进 4 个 phase-1 主题：`base-reproducibility-fix` / `proxysql-ha` / `redis-sentinel-boundary` / `cicd-state-iac`） (`d4ffcc4`)
-- 新增 `.cursor/rules/15-current-facts.mdc` 作为动态事实查询入口，AI 不再把规则文件示例当作权威事实 (`e97fe64`)
+## [arch-v1.8] — 2026-06-04
 
-### Changed
+**六节点基础接入**：广州两台新节点 gz-04（百度云·Ubuntu 24.04）、gz-05（腾讯云·Ubuntu 22.04）完成 Tailscale 入网、Docker Engine 29.5.2 安装与 node-exporter 监控接入（仅基础接入，不承载业务）；新增 `roles/base-access/` 在 6 台节点幂等创建统一运维身份 `admin-alex`（纯追加，不删 root），`roles/docker-daemon/` 扩展为可管理 Docker Engine 安装与 `global_gateway` 网络。Prometheus `up{job="node-exporter"}` 扩至 6 个 target 全 `up=1`，同城实测 ~10-11ms、跨城 ~35-38ms。本版本同期收束了 V1.7 准备期的 IaC 完整性审计（新增 `Docs/reviews/` 子体系、`mysql_source_delay` 倒推 21 个可复现性问题、凭据泄漏事件复盘与全历史脱敏）与监控链路修复（`prometheus.yml.j2` 单文件 bind mount + atomic rename + reload 三件叠加导致的 6 版本潜伏失效、blackbox Jenkins 探测路径误报）。
 
-- `inventory/group_vars/all.yml` 服务地址改为按主机分组派生（`hostvars[groups[...]].ansible_host`），节点 IP 调整不再需要手动改服务地址 (`d175ec9`)
-- `mysqld-exporter` 从 `monitor-stack` 中拆出独立 role，role 职责对应单一组件 (`1e85509`)
-- `roles/docker-daemon/templates/daemon.json.j2` 中 `insecure-registries` 改为按主机变量驱动 (`dcc9669`)
-- `roles/diary/` 与 `playbooks/setup_diary.yml` 拆出，diary 部署链路与静态资源独立由 diary role 持有 (`070e55d`, `4c43171`)
-- `playbooks/setup_backup.yml` 接入 `playbooks/site.yml` 主流程，告别"忘了跑"风险 (`f07f0e6`)
-- `.cursor/rules/00-project-context.mdc` / `10-docs-workflow.mdc` 去除硬编码的四节点表与 IP / 规格 / 延迟，统一指向 inventory 与最新架构快照 (`0c9581b`)
-- `.cursor/rules/01 / 20 / 30 / 40 / 50` 统一去硬编码，红线与示例不再钉在某一版本 (`d578515`)
-- `.cursor/rules/01-user-profile.mdc` 重写决策原则 2：能力标准是"能讲清意图 + 能独立排障"，不是"必须 0 AI 完成" (`f21b12f`)
-- `.cursor/rules/00-project-context.mdc` 澄清 AI 协作边界：AI 是合法生产力工具，要点是"能讲清"而非"AI 是否参与" (`4a14c10`)
-- `roles/nginx/templates/**` 站点配置与主模板注释精简 (`2f20877`, `d9667da`)
-
-### Fixed
-
-- `roles/nginx/handlers/main.yml` 修复 reload 在 compose 重启前执行的 handler 顺序 bug (`22b2306`)
-- `roles/monitor-stack/templates/prometheus.yml.j2` Jenkins 探测目标 `/` → `/login`，绕开 Jenkins 匿名根路径返回 HTTP 403 + HTML meta refresh 的双层语义导致 blackbox 持续误报（自 2026-05-16 起 5 天）(`49a644e`)
-- `roles/monitor-stack/handlers/main.yml` 拆分 reload handler：rules 改动继续热 reload，prometheus 主配置改动改为重建容器；修复 Docker 单文件 bind mount + ansible template atomic rename + reload 三件叠加导致的 6 版本潜伏失效（自 v1.5 引入监控栈起，所有 `prometheus.yml.j2` 改动从未真正进容器）(`8b60f5b`)
-
-### Removed
-
-- 废弃节点接入 proposal 与对应 runbook（节点接入主题现为 [`six-node-onboarding`](Docs/scheme/phase-1-architecture-upgrade.md#six-node-onboarding)） (`a307b5e`)
-- `roles/nginx/templates/conf.d/jjmstart.conf` 移除历史测试 location 块 (`e24b153`)
-- `roles/nginx/templates/conf.d/test.conf.disabled` 移除未使用站点配置 (`4efd596`)
-
-### Docs
-
-> 项目内工程治理类（注释维护、Pipeline 注释补全等），不影响运行行为。
-
-- `Jenkinsfile` 与 `Jenkinsfile.registry-gc` 补全 Pipeline 步骤注释 (`8e4644f`, `9a60feb`)
-- `jenkins-build/Dockerfile` 注释补全 (`5a2da66`)
-- `roles/jenkins/`、`roles/ruoyi/`、`roles/mysql-replica/`、`roles/docker-daemon/` 内 task / template / handler 注释维护 (`4bf4fd0`, `a7f6800`, `d18afc7`, `e49918a`, `fdc2ae0`)
-- `inventory/group_vars/all.yml` 注释更新 (`57a2ef3`)
+- 详细架构状态：[`Docs/architecture/v1.8.md`](Docs/architecture/v1.8.md)
+- 升级手册：[`Docs/runbooks/v1.7-to-v1.8.md`](Docs/runbooks/v1.7-to-v1.8.md)
+- 复盘：[`Docs/retrospectives/v1.8-retrospective.md`](Docs/retrospectives/v1.8-retrospective.md)
 
 ---
 
