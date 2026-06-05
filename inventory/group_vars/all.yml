@@ -133,3 +133,7 @@ access_user: admin-alex
 admin_alex_authorized_keys:
   # bj-01 Ansible 控制节点 + Jenkins ansible-ssh-key 凭据共用同一私钥（~/.ssh/id_ed25519_ansible）
   - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPnqXKc4QvZdqHgM4Pa56EgdwfS5Ydo+G46ef2jh6POi bj-01-ansible"
+
+# Docker apt 安装源（apt 仓库 + GPG key）
+# 国内节点在 hosts.yml 里按云厂商覆盖，默认走官方地址
+docker_apt_mirror: "https://download.docker.com/linux/ubuntu"
