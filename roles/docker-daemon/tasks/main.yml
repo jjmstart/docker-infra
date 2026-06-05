@@ -5,7 +5,7 @@
   register: docker_cli_check
   changed_when: false
   check_mode: false
-  failed_when: docker_cli_check.rc not in [0, 127]
+  failed_when: docker_cli_check.rc not in [0, 2, 127]
 
 - name: Install prerequisites for Docker apt repo
   ansible.builtin.apt:
@@ -31,7 +31,7 @@
 
 - name: Add Docker official GPG key
   ansible.builtin.get_url:
-    url: "https://download.docker.com/linux/ubuntu/gpg"
+    url: "{{ docker_apt_mirror }}/gpg"
     dest: /etc/apt/keyrings/docker.asc
     mode: "0644"
   when:
@@ -43,7 +43,7 @@
     repo: >-
       deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}
       signed-by=/etc/apt/keyrings/docker.asc]
-      https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+      {{ docker_apt_mirror }} {{ ansible_distribution_release }} stable
     filename: docker
     state: present
   when: docker_cli_check.rc != 0
