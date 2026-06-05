@@ -1,0 +1,48 @@
+---
+- name: Check k3s-agent service state
+  ansible.builtin.command: systemctl is-active k3s-agent
+  register: k3s_agent_active
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Set k3s_agent_installed fact
+  ansible.builtin.set_fact:
+    k3s_agent_installed: "{{ k3s_agent_active.stdout | trim == 'active' }}"
+
+- name: Ensure /etc/rancher/k3s directory exists
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: "0755"
+
+- name: Render K3s registries.yaml
+  ansible.builtin.template:
+    src: registries.yaml.j2
+    dest: /etc/rancher/k3s/registries.yaml
+    mode: "0600"
+  no_log: true
+  notify: restart k3s agent
+
+# 以 agent 加入 gz-05；K3S_URL 指向 server Tailscale IP:6443，K3S_TOKEN 来自 vault。
+# --node-ip 用各自 Tailscale IP（ansible_host），--flannel-iface=tailscale0 强制走 Tailscale。
+- name: Install K3s agent (online, join cluster)
+  ansible.builtin.shell: |
+    curl -sfL https://get.k3s.io | \
+      K3S_URL="https://{{ k3s_server_host }}:{{ k3s_api_port }}" \
+      K3S_TOKEN="{{ k3s_token }}" \
+      INSTALL_K3S_EXEC="agent \
+        --node-ip={{ ansible_host }} \
+        --flannel-iface=tailscale0" sh -
+  args:
+    creates: /usr/local/bin/k3s-agent-uninstall.sh
+  no_log: true
+  when: not k3s_agent_installed
+
+- name: Wait for k3s-agent to be active
+  ansible.builtin.command: systemctl is-active k3s-agent
+  register: k3s_agent_active_post
+  until: k3s_agent_active_post.stdout | trim == 'active'
+  retries: 12
+  delay: 5
+  changed_when: false

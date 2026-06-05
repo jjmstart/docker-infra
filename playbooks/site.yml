@@ -10,3 +10,4 @@
 - import_playbook: setup_monitor.yml
 - import_playbook: setup_ops.yml
 - import_playbook: setup_backup.yml
+- import_playbook: setup_k3s.yml

@@ -1,0 +1,76 @@
+---
+# 幂等：k3s 已装且 systemd 服务 active 则跳过安装（与 v1.8 docker-daemon 能力探测同风格）。
+- name: Check k3s server service state
+  ansible.builtin.command: systemctl is-active k3s
+  register: k3s_active
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Set k3s_server_installed fact
+  ansible.builtin.set_fact:
+    k3s_server_installed: "{{ k3s_active.stdout | trim == 'active' }}"
+
+- name: Ensure /etc/rancher/k3s directory exists
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: "0755"
+
+# 私有 Registry 接入；含凭据，no_log。注意 registries.yaml 改动需重启 k3s 才生效（见 notify）。
+- name: Render K3s registries.yaml
+  ansible.builtin.template:
+    src: registries.yaml.j2
+    dest: /etc/rancher/k3s/registries.yaml
+    mode: "0600"
+  no_log: true
+  notify: restart k3s server
+
+# 在线安装：get.k3s.io。INSTALL_K3S_EXEC 固定启动参数（决策 D1/D4）。
+# token 来自 vault，no_log。--flannel-iface=tailscale0 是跨云走 Tailscale 的关键。
+- name: Install K3s server (online)
+  ansible.builtin.shell: |
+    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server \
+      --node-ip={{ k3s_server_host }} \
+      --flannel-iface=tailscale0 \
+      --disable=traefik \
+      --write-kubeconfig-mode=0644 \
+      --token={{ k3s_token }}" sh -
+  args:
+    creates: /usr/local/bin/k3s          # 已装则跳过，保证幂等
+  no_log: true
+  when: not k3s_server_installed
+
+- name: Wait for k3s server to be active
+  ansible.builtin.command: systemctl is-active k3s
+  register: k3s_active_post
+  until: k3s_active_post.stdout | trim == 'active'
+  retries: 12
+  delay: 5
+  changed_when: false
+
+# 读取 node-token 供 agent 复用（虽然我们固定了 --token，仍校验一致性）。
+- name: Read k3s node-token
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: k3s_node_token_b64
+  no_log: true
+
+- name: Set k3s_node_token fact
+  ansible.builtin.set_fact:
+    k3s_node_token: "{{ k3s_node_token_b64.content | b64decode | trim }}"
+  no_log: true
+
+# 把 kubeconfig 拉回 bj-01，并把 server: 127.0.0.1 改为 gz-05 Tailscale IP。
+- name: Slurp kubeconfig from server
+  ansible.builtin.slurp:
+    src: /etc/rancher/k3s/k3s.yaml
+  register: k3s_kubeconfig_b64
+
+- name: Write kubeconfig to bj-01 control node
+  ansible.builtin.copy:
+    content: "{{ k3s_kubeconfig_b64.content | b64decode | regex_replace('127.0.0.1', k3s_server_host) }}"
+    dest: "{{ lookup('env', 'HOME') }}/.kube/k3s-ruoyi.yaml"
+    mode: "0600"
+  delegate_to: localhost
+  become: false

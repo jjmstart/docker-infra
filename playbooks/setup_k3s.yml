@@ -1,0 +1,16 @@
+---
+- name: Install K3s server on control-plane node
+  hosts: k3s_server_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml   # 提供 k3s_token、registry_auth_*
+  roles:
+    - k3s-server
+
+- name: Join K3s agents to cluster
+  hosts: k3s_agent_nodes
+  become: true
+  vars_files:
+    - ../vault/secrets.yml
+  roles:
+    - k3s-agent

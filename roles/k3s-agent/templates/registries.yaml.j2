@@ -1,0 +1,10 @@
+# K3s containerd 私有 Registry 接入（K3s 不读 Docker daemon.json，必须单独配）。
+mirrors:
+  "{{ registry_host }}":
+    endpoint:
+      - "http://{{ registry_host }}"   # 私有 Registry 是 HTTP，显式 http:// 端点
+configs:
+  "{{ registry_host }}":
+    auth:
+      username: "{{ registry_auth_username }}"   # 复用 v1.8 vault 凭据，不新增条目
+      password: "{{ registry_auth_password }}"
