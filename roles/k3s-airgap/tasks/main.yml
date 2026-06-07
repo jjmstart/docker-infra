@@ -1,0 +1,48 @@
+---
+# 在控制节点 bj-01（GitHub egress 正常）准备 K3s 离线产物，供 k3s-server / k3s-agent
+# 经 Tailscale 分发到各 gz 节点离线安装。被两个 role 以 include_role 复用，避免重复下载逻辑。
+#
+# 三个 task 统一 delegate_to: localhost + run_once + become: false：
+#   - delegate_to localhost：下载发生在控制节点而非各 gz 节点（gz 节点连不上公网）
+#   - run_once：多 host（agent 有 gz-04/gz-06 两台）只下载一次，复用同一份缓存
+#   - become: false：写入调用者 HOME 下缓存目录，无需 root（与 server role 拉 kubeconfig 同风格）
+# get_url 自带幂等：dest 已存在且 sha256 匹配则跳过下载，仅做一次小体积 checksum 文件校验。
+
+- name: Ensure local airgap cache dir exists (control node)
+  ansible.builtin.file:
+    path: "{{ k3s_airgap_cache_dir }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  run_once: true
+  become: false
+
+- name: Download K3s binary to control node cache
+  ansible.builtin.get_url:
+    url: "{{ k3s_binary_url }}"
+    dest: "{{ k3s_airgap_cache_dir }}/k3s"
+    checksum: "sha256:{{ k3s_sha256_url }}"   # 据 release 的 sha256sum 文件按文件名匹配校验
+    mode: "0755"
+  delegate_to: localhost
+  run_once: true
+  become: false
+
+- name: Download K3s airgap images tarball to control node cache
+  ansible.builtin.get_url:
+    url: "{{ k3s_airgap_images_url }}"
+    dest: "{{ k3s_airgap_cache_dir }}/{{ k3s_airgap_images_filename }}"
+    checksum: "sha256:{{ k3s_sha256_url }}"
+    mode: "0644"
+  delegate_to: localhost
+  run_once: true
+  become: false
+
+# install.sh 内容随版本变化、官方不提供其 sha256，故不做 checksum 校验。
+- name: Download K3s install script to control node cache
+  ansible.builtin.get_url:
+    url: "{{ k3s_install_script_url }}"
+    dest: "{{ k3s_airgap_cache_dir }}/install.sh"
+    mode: "0755"
+  delegate_to: localhost
+  run_once: true
+  become: false
