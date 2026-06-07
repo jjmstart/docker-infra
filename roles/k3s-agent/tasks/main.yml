@@ -10,6 +10,12 @@
   ansible.builtin.set_fact:
     k3s_agent_installed: "{{ k3s_agent_active.stdout | trim == 'active' }}"
 
+# 在控制节点 bj-01 准备离线产物（二进制 + airgap 镜像包 + install.sh），与 server role 复用同一缓存。
+# 不加 when 守卫：缓存与具体节点无关，混合状态（部分 agent 已装）下也保证 run_once 主机能拿到缓存。
+- name: Stage K3s airgap artifacts on control node
+  ansible.builtin.include_role:
+    name: k3s-airgap
+
 - name: Ensure /etc/rancher/k3s directory exists
   ansible.builtin.file:
     path: /etc/rancher/k3s
@@ -24,18 +30,56 @@
   no_log: true
   notify: restart k3s agent
 
-# 以 agent 加入 gz-05；K3S_URL 指向 server Tailscale IP:6443，K3S_TOKEN 来自 vault。
+# 离线产物分发：从控制节点缓存推到本 agent 节点（走 Tailscale）。守 not installed，避免覆盖已运行节点。
+# airgap 镜像包让 agent 启动时本地导入系统镜像，绕开不可达的 docker.io。
+- name: Stage K3s binary to node
+  ansible.builtin.copy:
+    src: "{{ k3s_airgap_cache_dir }}/k3s"
+    dest: /usr/local/bin/k3s
+    mode: "0755"
+  when: not k3s_agent_installed
+
+- name: Ensure K3s airgap images dir exists
+  ansible.builtin.file:
+    path: /var/lib/rancher/k3s/agent/images
+    state: directory
+    mode: "0755"
+  when: not k3s_agent_installed
+
+- name: Stage K3s airgap images tarball to node
+  ansible.builtin.copy:
+    src: "{{ k3s_airgap_cache_dir }}/{{ k3s_airgap_images_filename }}"
+    dest: "/var/lib/rancher/k3s/agent/images/{{ k3s_airgap_images_filename }}"
+    mode: "0644"
+  when: not k3s_agent_installed
+
+- name: Ensure K3s install script dir exists
+  ansible.builtin.file:
+    path: "{{ k3s_install_script_path | dirname }}"
+    state: directory
+    mode: "0755"
+  when: not k3s_agent_installed
+
+- name: Stage K3s install script to node
+  ansible.builtin.copy:
+    src: "{{ k3s_airgap_cache_dir }}/install.sh"
+    dest: "{{ k3s_install_script_path }}"
+    mode: "0755"
+  when: not k3s_agent_installed
+
+# 离线 join：INSTALL_K3S_SKIP_DOWNLOAD=true 用预置二进制 + 本地 install.sh，不下载。
+# K3S_URL 指向 server Tailscale IP:6443，K3S_TOKEN 来自 vault，no_log。
 # --node-ip 用各自 Tailscale IP（ansible_host），--flannel-iface=tailscale0 强制走 Tailscale。
-- name: Install K3s agent (online, join cluster)
+- name: Install K3s agent (airgap, join cluster)
   ansible.builtin.shell: |
-    curl -sfL https://get.k3s.io | \
+    INSTALL_K3S_SKIP_DOWNLOAD=true \
       K3S_URL="https://{{ k3s_server_host }}:{{ k3s_api_port }}" \
       K3S_TOKEN="{{ k3s_token }}" \
       INSTALL_K3S_EXEC="agent \
         --node-ip={{ ansible_host }} \
-        --flannel-iface=tailscale0" sh -
+        --flannel-iface=tailscale0" sh {{ k3s_install_script_path }}
   args:
-    creates: /usr/local/bin/k3s-agent-uninstall.sh
+    creates: /etc/systemd/system/k3s-agent.service   # install.sh 生成的 unit，作幂等哨兵
   no_log: true
   when: not k3s_agent_installed
 
