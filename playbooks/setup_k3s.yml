@@ -5,7 +5,8 @@
   vars_files:
     - ../vault/secrets.yml   # 提供 k3s_token、registry_auth_*
   roles:
-    - k3s-server
+    - role: k3s-server
+      tags: [k3s, k3s-server]
 
 - name: Join K3s agents to cluster
   hosts: k3s_agent_nodes
@@ -13,4 +14,5 @@
   vars_files:
     - ../vault/secrets.yml
   roles:
-    - k3s-agent
+    - role: k3s-agent
+      tags: [k3s, k3s-agent]
