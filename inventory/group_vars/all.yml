@@ -143,3 +143,25 @@ k3s_api_port: 6443
 ruoyi_k3s_namespace: ruoyi
 ruoyi_k3s_nodeport: 30080      # gz-01 Nginx upstream 指向各 K3s 节点此端口
 ruoyi_k3s_replicas: 2
+
+# ── K3s 离线 (airgap) 安装（v1.9 实测调整）─────────────────────────────────────
+# 背景：gz 节点（腾讯/百度云广州）实测连不上 docker.io（curl http=000 超时），
+# rancher-mirror 也取不到二进制，在线 get.k3s.io 安装卡在二进制下载、且即便装上也会
+# 卡在启动拉系统镜像。改为：控制节点 bj-01（GitHub egress 正常）下载 k3s 二进制 +
+# airgap 镜像包，经 Tailscale 分发到各 K3s 节点，INSTALL_K3S_SKIP_DOWNLOAD 离线安装，
+# gz 节点全程零公网依赖。version / arch 是唯一可调旋钮，其余 URL、路径均由其派生。
+k3s_version: "v1.35.5+k3s1"     # 对应 GitHub release tag（stable 频道当前值）；升级 K3s 只改这里
+k3s_arch: "amd64"               # gz-04/05/06 实测均 x86_64
+# 控制节点 bj-01 上的离线产物缓存目录，按版本隔离便于多版本并存与回滚
+k3s_airgap_cache_dir: "{{ lookup('env', 'HOME') }}/.cache/k3s-airgap/{{ k3s_version }}"
+k3s_airgap_images_filename: "k3s-airgap-images-{{ k3s_arch }}.tar.zst"
+# 下载基址走 DaoCloud 的 GitHub release 文件代理（files.m.daocloud.io/github.com/...）：
+# 实测 bj-01 直连 github.com release CDN 不稳（HEAD 通、GET 卡 TCP），rancher-mirror 的
+# 二进制/airgap 路径又 404；DaoCloud 代理在 bj-01 稳定可达（206 实测）。tag 里 '+' 需转义为 %2B。
+# 升级源时只改这一行（如恢复直连可改回 https://github.com/k3s-io/k3s/releases/download/...）。
+k3s_release_base: "https://files.m.daocloud.io/github.com/k3s-io/k3s/releases/download/{{ k3s_version | replace('+', '%2B') }}"
+k3s_binary_url: "{{ k3s_release_base }}/k3s"
+k3s_airgap_images_url: "{{ k3s_release_base }}/{{ k3s_airgap_images_filename }}"
+k3s_sha256_url: "{{ k3s_release_base }}/sha256sum-{{ k3s_arch }}.txt"  # get_url 据此校验二进制/镜像包完整性
+k3s_install_script_url: "https://get.k3s.io"  # 安装脚本走官方源，bj-01/gz 实测均 1s 可达；只在控制节点下载一次再分发
+k3s_install_script_path: /usr/local/share/k3s/install.sh  # 各 K3s 节点上离线安装脚本落地路径
