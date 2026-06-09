@@ -40,7 +40,7 @@ v1.8 落地后新增腾讯云·广州 4C4G 节点 gz-06，定位常驻 K3s worke
 
 | Role | 职责 | 关键任务 |
 |---|---|---|
-| `roles/k3s-server/` | 在 gz-05 安装 K3s server，可调度业务 Pod | ① `docker --version` 式能力探测：`k3s` 已装且 `systemctl is-active k3s` 为 active 则跳过安装；② 渲染 `/etc/rancher/k3s/registries.yaml`（私有 Registry，见 §2.4）；③ 经离线/镜像化的 `install.sh` 安装 K3s，启动参数见下；④ 读取 `/var/lib/rancher/k3s/server/node-token` 并 `set_fact` 供 agent 复用；⑤ 把 `/etc/rancher/k3s/k3s.yaml` 拉回 bj-01、改 `server:` 为 gz-05 Tailscale IP，落到 `~/.kube/k3s-ruoyi.yaml` |
+| `roles/k3s-server/` | 在 gz-05 安装 K3s server，可调度业务 Pod | ① `docker --version` 式能力探测：`k3s` 已装且 `systemctl is-active k3s` 为 active 则跳过安装；② 渲染 `/etc/rancher/k3s/registries.yaml`（私有 Registry，见 §2.4）；③ 经离线/镜像化的 `install.sh` 安装 K3s，使用 vault 中固定 `k3s_token` 初始化 server，启动参数见下；④ 把 `/etc/rancher/k3s/k3s.yaml` 拉回 bj-01、改 `server:` 为 gz-05 Tailscale IP，落到 `~/.kube/k3s-ruoyi.yaml` |
 | `roles/k3s-agent/` | 在 gz-04 / gz-06 以 agent 加入 gz-05 集群（`hosts: k3s_agent_nodes`，两台同一套任务）| ① 同款能力探测（`k3s-agent` 服务已 active 则跳过）；② 渲染同一份 `registries.yaml`；③ 以 `K3S_URL=https://<gz-05 Tailscale IP>:6443`、`K3S_TOKEN={{ k3s_token }}` 经 `install.sh` 加入；④ 启动参数指定 `--node-ip`（各自 Tailscale IP）/ `--flannel-iface=tailscale0` |
 
 **K3s server 启动参数（gz-05）**：

@@ -94,18 +94,6 @@
   delay: 5
   changed_when: false
 
-# 读取 node-token 供 agent 复用（虽然我们固定了 --token，仍校验一致性）。
-- name: Read k3s node-token
-  ansible.builtin.slurp:
-    src: /var/lib/rancher/k3s/server/node-token
-  register: k3s_node_token_b64
-  no_log: true
-
-- name: Set k3s_node_token fact
-  ansible.builtin.set_fact:
-    k3s_node_token: "{{ k3s_node_token_b64.content | b64decode | trim }}"
-  no_log: true
-
 # 把 kubeconfig 拉回 bj-01，并把 server: 127.0.0.1 改为 gz-05 Tailscale IP。
 - name: Slurp kubeconfig from server
   ansible.builtin.slurp:
