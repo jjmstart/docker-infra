@@ -108,6 +108,7 @@
   retries: 12
   delay: 5
   changed_when: false
+  check_mode: false
   when: k3s_server_installed or not ansible_check_mode
 
 # 把 kubeconfig 拉回 bj-01，并把 server: 127.0.0.1 改为 gz-05 Tailscale IP。

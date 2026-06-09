@@ -105,4 +105,5 @@
   retries: 12
   delay: 5
   changed_when: false
+  check_mode: false
   when: k3s_agent_installed or not ansible_check_mode
