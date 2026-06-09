@@ -14,7 +14,7 @@
 
 **有意识不做的事**：不在本阶段引入抢占式实例、Cluster Autoscaler 或跨云动态扩缩容。当前 ruoyi 业务没有真实流量峰谷，抢占式实例池、自动入网、节点回收优雅迁移与多云 API 适配会显著放大复杂度，且难以在面试中用真实业务指标支撑。本阶段只验证固定三节点 K3s（gz-05 server + gz-04/gz-06 worker）、固定节点调度、滚动更新、回滚、故障演练与 Helm 管理。
 
-**v1.13-v1.18 收尾顺序**：DMS、基础可复现性、ProxySQL HA、Redis Sentinel 边界、CI/CD 状态 IaC 化顺延到 v1.13-v1.17；`observability-integration` 从 v2.0 拆出为 v1.18 压轴主题，在监控、告警、日志、HA 与 CI/CD 状态管理均具备后做统一 Dashboard 与告警调优。v2.0 不再承载新技术主题，仅作为 phase-1 收束版本：发布最终架构快照、阶段复盘与 `arch-v2.0` tag。
+**v1.13-v1.19 收尾顺序**：DMS（v1.13）、TLS 证书自动续期（v1.14）、基础可复现性（v1.15）、ProxySQL HA（v1.16）、Redis Sentinel 边界（v1.17）、CI/CD 状态 IaC 化（v1.18）依次顺延；其中 `tls-cert-automation` 与 `base-reproducibility-fix` 同属"把历史手工初始化状态收进 IaC 边界"集群，排在该集群最前作为入口侧开场（体量小、自包含），之后再进 MySQL 数据层与 HA 状态治理。`observability-integration` 从 v2.0 拆出为 v1.19 压轴主题，在监控、告警、日志、HA 与 CI/CD 状态管理均具备后做统一 Dashboard 与告警调优。v2.0 不再承载新技术主题，仅作为 phase-1 收束版本：发布最终架构快照、阶段复盘与 `arch-v2.0` tag。
 
 ---
 
@@ -33,11 +33,12 @@
 | `service-migration` | 服务迁移（gz-01 入口/监控迁至 gz-04 + watchdog） | v1.11 | 待开始 |
 | `loki-logging` | Loki 日志集中管理（K3s + Helm） | v1.12 | 待开始 |
 | `dms-outlet-redundancy` | Dead Man's Switch（告警出口冗余） | v1.13 | 待开始 |
-| `base-reproducibility-fix` | 基础可复现性修复（Docker 网络 + MySQL 数据层 bootstrap） | v1.14 | 待开始 |
-| `proxysql-ha` | ProxySQL HA 化（Cluster + runtime 同步 + 应用多端点） | v1.15 | 待开始 |
-| `redis-sentinel-boundary` | Redis Sentinel 边界修复（运行时拓扑 vs Ansible 静态配置） | v1.16 | 待开始 |
-| `cicd-state-iac` | CI/CD 状态 IaC 化（Jenkins 镜像、Job、Credentials 备份边界） | v1.17 | 待开始 |
-| `observability-integration` | 可观测性增强（Dashboard 整合） | v1.18 | 待开始 |
+| `tls-cert-automation` | TLS 证书自动签发与续期（acme.sh + Let's Encrypt + DNS-01 泛域名） | v1.14 | 待开始 |
+| `base-reproducibility-fix` | 基础可复现性修复（Docker 网络 + MySQL 数据层 bootstrap） | v1.15 | 待开始 |
+| `proxysql-ha` | ProxySQL HA 化（Cluster + runtime 同步 + 应用多端点） | v1.16 | 待开始 |
+| `redis-sentinel-boundary` | Redis Sentinel 边界修复（运行时拓扑 vs Ansible 静态配置） | v1.17 | 待开始 |
+| `cicd-state-iac` | CI/CD 状态 IaC 化（Jenkins 镜像、Job、Credentials 备份边界） | v1.18 | 待开始 |
+| `observability-integration` | 可观测性增强（Dashboard 整合） | v1.19 | 待开始 |
 | `phase-1-closeout` | Phase-1 收束（最终快照 + 阶段复盘 + arch-v2.0 tag） | v2.0 | 待开始 |
 
 ---
@@ -432,11 +433,76 @@ v1.7 复盘中识别到告警链路存在出口端单点：被监控对象 → P
 
 ---
 
+<a id="tls-cert-automation"></a>
+
+## 任务 9：TLS 证书自动签发与续期（目标 v1.14）
+
+> **slug**：`tls-cert-automation` ｜ 当前目标版本：**v1.14**
+
+### 背景
+
+当前入口节点（`gateway_nodes`，[`service-migration`](#service-migration) 落地后为 gz-04）的 Nginx 为 `jjmstart.com` 主站及 diary / ruoyi / jenkins / monitor 子域提供 HTTPS，但 TLS 证书是手工签发的阿里云免费证书（有效期仅 90 天），手工放置在宿主机 `/opt/docker/proxy/nginx/ssl/` 下由 compose 卷挂载进容器。`roles/nginx` 只挂载 ssl 目录、不管理证书本体——注释虽写"证书由 Ansible 挂载"，实际证书生命周期完全在 IaC 边界之外，必须人工记忆每 3 个月续签。该机制已实际导致 diary.jjmstart.com 证书过期事故，其余子域证书也将在一个月内相继过期。
+
+本主题与 [`base-reproducibility-fix`](#base-reproducibility-fix) 同属"把历史手工初始化状态收进 IaC 边界"集群（参见 `Docs/reviews/v1.7-iac-completeness-audit.md`），目标是引入 ACME 自动签发 + 自动续期，把证书从"人工 3 个月一续、必然会忘"变为"全自动、零接触"。
+
+### 关键决策
+
+> 本表为用户逐项评估后确认的方案（2026-06，详见决策记录）。核心取向：**最小新增凭据、最小改动面、可独立讲清**，不追求"将来加子域零接触"这一边际收益而引入云账号 DNS 写权限。
+
+| 决策点 | 选型 | 理由 |
+|---|---|---|
+| ACME 客户端 | acme.sh | 单 shell 脚本、零运行时依赖、自带 `--install-cron` 自动续期、deploy-hook 机制成熟；比 certbot 轻量，契合中小规模基线；不引入 Caddy（需替换 Nginx，改动过重） |
+| CA | Let's Encrypt | 免费、90 天有效期、acme.sh 默认 60 天自动续期，无人工干预；首次签发先用 `--staging` 演练规避速率限制 |
+| 验证方式 | **HTTP-01（webroot）** | **不引入任何 DNS API 凭据**（vault 零新增 secret），复用入口已开放的 80 端口；攻击面小于 DNS-01。代价是不支持泛域名、新增子域需重新签发——对当前固定子域集可接受 |
+| 证书形态 | **单张多-SAN 证书** | HTTP-01 不能签泛域名，但可签一张覆盖全部精确子域的多-SAN 证书（`jjmstart.com` + `www` + diary/ruoyi/jenkins/monitor），替代现有 5 套独立证书，一次续期一次 reload。权衡：任一子域 HTTP-01 校验失败会拖累整张证书续期 |
+| 运行形态 | **宿主机安装 + Ansible 托管系统 cron** | acme.sh 装在 `gateway_nodes` 宿主机，续期机制由 `ansible.builtin.cron` 幂等管理（不放任 `--install-cron` 在 IaC 外自建循环）；reload 复用现有 `docker exec nginx nginx -s reload`。不容器化（容器化需挂 docker.sock，反增安全面） |
+| 子域清理 | 去掉 `www.jenkins.jjmstart.com` | 历史遗留、无保留价值，去掉后 SAN 列表与 Nginx 配置更干净 |
+| 部署归属 | 新建 `roles/acme-cert`，绑定 `gateway_nodes` | 续期后经 deploy-hook 自动 reload Nginx；绑定 `gateway_nodes` 使 [`service-migration`](#service-migration) 入口迁到 gz-04 后自动跟随，无需重做 |
+
+### 要完成的内容
+
+**新增 Ansible Role `roles/acme-cert`**
+
+- 在 `gateway_nodes` 安装 acme.sh（`ansible.builtin.get_url` + `creates:` 守卫保证幂等），注册 Let's Encrypt 账户
+- 以 **HTTP-01 webroot 模式**签发单张多-SAN 证书，`-d` 列表覆盖 `jjmstart.com`、`www.jjmstart.com`、`diary/ruoyi/jenkins/monitor.jjmstart.com`（不含 `www.jenkins`）
+- challenge 文件写入挂载进 Nginx 容器的 webroot 目录（如 `{{ docker_root }}/proxy/nginx/acme-webroot`）
+- 续期机制用 `ansible.builtin.cron` 幂等托管（不依赖 acme.sh `--install-cron`），deploy-hook 将续期后的证书安装到 Nginx ssl 目录并 `docker exec nginx nginx -s reload`
+- 幂等：证书未进入续期窗口时重复执行 `changed=0`
+
+**Nginx 配置收敛**
+
+- 各 `conf.d/*.conf` 的 `:80` server 块新增 `location /.well-known/acme-challenge/`（指向 webroot，**先于** 301 跳转命中），避免 HTTP-01 校验请求被重定向到 HTTPS 而失败；可抽成共享 snippet 复用
+- 各站点的 `ssl_certificate` / `ssl_certificate_key` 收敛为统一的多-SAN 证书路径
+- 移除 `www.jenkins.jjmstart.com` server_name
+- 移除"证书手工放置"的隐性约定，明确证书由 `acme-cert` role 产出
+
+**vault 变更**
+
+- **无新增**。HTTP-01 不需要 DNS API 凭据，本主题不向 `vault/secrets.yml` 写入任何新 secret（相对原 DNS-01 方案的核心简化）
+
+### 验收标准
+
+- `gateway_nodes` 上 acme.sh 已安装，`acme.sh --list` 可见多-SAN 证书且状态为已签发，签发者为 Let's Encrypt
+- diary / ruoyi / jenkins / monitor / 主站全部子域浏览器显示有效证书
+- 各子域 `http://域名/.well-known/acme-challenge/<token>` 可被 Nginx 正确返回（不被 301 跳转）
+- 手动 `acme.sh --renew --force` 后证书更新且 Nginx 自动 reload，业务不中断
+- Ansible 托管的 cron 自动续期任务存在，deploy-hook 能在续期后正确安装新证书
+- `roles/acme-cert` 与改动后的 `roles/nginx` 重复执行 `changed=0 failed=0`
+- `vault/secrets.yml` 无任何与本主题相关的新增凭据
+
+### 待确认问题（proposal 阶段验证）
+
+- 单张多-SAN 证书 vs 维持每子域独立证书（前者更简洁、后者单域失败不影响其余子域续期）——倾向单张多-SAN
+- HTTP-01 challenge 的 `location` 是抽成共享 snippet 由各站点 `include`，还是每个 `conf.d/*.conf` 各写一份
+- 首次签发先走 Let's Encrypt `--staging` 演练、验证链路通后再切正式（规避速率限制）的具体步骤
+
+---
+
 <a id="base-reproducibility-fix"></a>
 
-## 任务 9：基础可复现性修复（目标 v1.14）
+## 任务 10：基础可复现性修复（目标 v1.15）
 
-> **slug**：`base-reproducibility-fix` ｜ 当前目标版本：**v1.14**
+> **slug**：`base-reproducibility-fix` ｜ 当前目标版本：**v1.15**
 
 ### 背景
 
@@ -479,9 +545,9 @@ v1.7 全量复盘中，从 `inventory/hosts.yml` 中 `mysql_source_delay: 3600` 
 
 <a id="proxysql-ha"></a>
 
-## 任务 10：ProxySQL HA 化（目标 v1.15）
+## 任务 11：ProxySQL HA 化（目标 v1.16）
 
-> **slug**：`proxysql-ha` ｜ 当前目标版本：**v1.15**
+> **slug**：`proxysql-ha` ｜ 当前目标版本：**v1.16**
 
 ### 背景
 
@@ -551,9 +617,9 @@ v1.7 全量复盘中，从 `inventory/hosts.yml` 中 `mysql_source_delay: 3600` 
 
 <a id="redis-sentinel-boundary"></a>
 
-## 任务 11：Redis Sentinel 边界修复（目标 v1.16）
+## 任务 12：Redis Sentinel 边界修复（目标 v1.17）
 
-> **slug**：`redis-sentinel-boundary` ｜ 当前目标版本：**v1.16**
+> **slug**：`redis-sentinel-boundary` ｜ 当前目标版本：**v1.17**
 
 ### 背景
 
@@ -595,9 +661,9 @@ v1.7 全量复盘中，从 `inventory/hosts.yml` 中 `mysql_source_delay: 3600` 
 
 <a id="cicd-state-iac"></a>
 
-## 任务 12：CI/CD 状态 IaC 化（目标 v1.17）
+## 任务 13：CI/CD 状态 IaC 化（目标 v1.18）
 
-> **slug**：`cicd-state-iac` ｜ 当前目标版本：**v1.17**
+> **slug**：`cicd-state-iac` ｜ 当前目标版本：**v1.18**
 
 ### 背景
 
@@ -636,9 +702,9 @@ bj-01 同时承担 Ansible 控制节点、Jenkins、Registry 和运维入口职�
 
 <a id="observability-integration"></a>
 
-## 任务 13：可观测性增强（目标 v1.18）
+## 任务 14：可观测性增强（目标 v1.19）
 
-> **slug**：`observability-integration` ｜ 当前目标版本：**v1.18**
+> **slug**：`observability-integration` ｜ 当前目标版本：**v1.19**
 
 ### 背景
 
@@ -684,13 +750,13 @@ bj-01 同时承担 Ansible 控制节点、Jenkins、Registry 和运维入口职�
 
 <a id="phase-1-closeout"></a>
 
-## 任务 14：Phase-1 收束（目标 v2.0）
+## 任务 15：Phase-1 收束（目标 v2.0）
 
 > **slug**：`phase-1-closeout` ｜ 当前目标版本：**v2.0**
 
 ### 背景
 
-v2.0 不再引入新技术组件，它是 phase-1 的收束标志：将 v1.5 到 v1.18 的告警、交付、备份、K3s、Helm、服务迁移、Loki、HA 状态治理、CI/CD IaC 与可观测性整合沉淀为一个最终架构快照和阶段复盘，形成可被简历、面试与后续 phase-2 继续引用的稳定基线。
+v2.0 不再引入新技术组件，它是 phase-1 的收束标志：将 v1.5 到 v1.19 的告警、交付、备份、K3s、Helm、服务迁移、Loki、TLS 证书自动化、HA 状态治理、CI/CD IaC 与可观测性整合沉淀为一个最终架构快照和阶段复盘，形成可被简历、面试与后续 phase-2 继续引用的稳定基线。
 
 ### 要完成的内容
 
@@ -701,7 +767,7 @@ v2.0 不再引入新技术组件，它是 phase-1 的收束标志：将 v1.5 到
 
 **阶段复盘**
 
-- 新建 phase-1 总结文档（命名在 proposal 阶段确定），按主题回顾从 v1.5 到 v1.18 的核心演进
+- 新建 phase-1 总结文档（命名在 proposal 阶段确定），按主题回顾从 v1.5 到 v1.19 的核心演进
 - 总结可迁移工程原则：单一事实源、slug 化路线引用、IaC 边界、HA 状态边界、K3s 有状态边界、可观测性闭环
 - 明确 phase-2 候选方向，但不在 v2.0 中展开实施
 
