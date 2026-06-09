@@ -118,6 +118,15 @@
   register: k3s_kubeconfig_b64
   when: k3s_server_installed or not ansible_check_mode
 
+- name: Ensure local kubeconfig directory exists
+  ansible.builtin.file:
+    path: "{{ lookup('env', 'HOME') }}/.kube"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+  when: k3s_server_installed or not ansible_check_mode
+
 - name: Write kubeconfig to bj-01 control node
   ansible.builtin.copy:
     content: "{{ k3s_kubeconfig_b64.content | b64decode | regex_replace('127.0.0.1', k3s_server_host) }}"
