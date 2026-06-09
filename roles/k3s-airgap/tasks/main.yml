@@ -7,6 +7,8 @@
 #   - run_once：多 host（agent 有 gz-04/gz-06 两台）只下载一次，复用同一份缓存
 #   - become: false：写入调用者 HOME 下缓存目录，无需 root（与 server role 拉 kubeconfig 同风格）
 # get_url 自带幂等：dest 已存在且 sha256 匹配则跳过下载，仅做一次小体积 checksum 文件校验。
+# check mode 下 file 不会真实创建目录，后续 get_url 会因父目录不存在失败；下载类任务也不适合 dry-run，
+# 因此整个 airgap 缓存准备只在真实执行时运行。
 
 - name: Ensure local airgap cache dir exists (control node)
   ansible.builtin.file:
@@ -16,6 +18,7 @@
   delegate_to: localhost
   run_once: true
   become: false
+  when: not ansible_check_mode
 
 - name: Download K3s binary to control node cache
   ansible.builtin.get_url:
@@ -26,6 +29,7 @@
   delegate_to: localhost
   run_once: true
   become: false
+  when: not ansible_check_mode
 
 - name: Download K3s airgap images tarball to control node cache
   ansible.builtin.get_url:
@@ -36,6 +40,7 @@
   delegate_to: localhost
   run_once: true
   become: false
+  when: not ansible_check_mode
 
 # install.sh 内容随版本变化、官方不提供其 sha256，故不做 checksum 校验。
 - name: Download K3s install script to control node cache
@@ -46,3 +51,4 @@
   delegate_to: localhost
   run_once: true
   become: false
+  when: not ansible_check_mode
