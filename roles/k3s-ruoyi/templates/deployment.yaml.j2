@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ruoyi
+  namespace: {{ ruoyi_k3s_namespace }}
+spec:
+  replicas: {{ ruoyi_k3s_replicas }}
+  selector:
+    matchLabels:
+      app: ruoyi
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0          # 滚动期间至少保留全部旧副本，配合公网不中断
+  template:
+    metadata:
+      labels:
+        app: ruoyi
+    spec:
+      # 跨 gz-04 / gz-06 两个专职 worker 打散；gz-05 control-plane 稳态不承载业务 Pod
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: ruoyi
+      # 不调度到 control-plane（gz-05）；只落 agent worker
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: ruoyi
+          image: "{{ registry_host }}/{{ ruoyi_image_name }}:{{ ruoyi_image_tag }}"
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: ruoyi-config
+            - secretRef:
+                name: ruoyi-secret
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "1.5Gi"
+              cpu: "1"
+          # 基线 TCP probe（Q3）：只问 8080 是否在监听，零依赖；httpGet 留待确认健康端点后升级
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 15

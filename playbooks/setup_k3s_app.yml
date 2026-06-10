@@ -1,0 +1,10 @@
+---
+- name: Deploy ruoyi onto K3s from control node
+  hosts: ops_nodes
+  gather_facts: false
+  vars:
+    k3s_kubeconfig: "{{ lookup('env', 'HOME') }}/.kube/k3s-ruoyi.yaml"
+  vars_files:
+    - ../vault/secrets.yml   # 提供 ruoyi_datasource_* / ruoyi_redis_password / registry_auth_*
+  roles:
+    - k3s-ruoyi

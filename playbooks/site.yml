@@ -11,3 +11,4 @@
 - import_playbook: setup_ops.yml
 - import_playbook: setup_backup.yml
 - import_playbook: setup_k3s.yml
+- import_playbook: setup_k3s_app.yml

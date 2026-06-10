@@ -1,0 +1,46 @@
+---
+# 所有对象经 bj-01 的 kubeconfig 下发；ns → configmap/secret → deployment → service。
+- name: Apply ruoyi namespace
+  kubernetes.core.k8s:
+    state: present
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    definition: "{{ lookup('template', 'namespace.yaml.j2') | from_yaml }}"
+
+- name: Apply ruoyi configmap
+  kubernetes.core.k8s:
+    state: present
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    definition: "{{ lookup('template', 'configmap.yaml.j2') | from_yaml }}"
+
+# Secret 含明文密码，definition 内存渲染不落盘 + no_log
+- name: Apply ruoyi secret
+  kubernetes.core.k8s:
+    state: present
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    definition: "{{ lookup('template', 'secret.yaml.j2') | from_yaml }}"
+  no_log: true
+
+- name: Apply ruoyi deployment
+  kubernetes.core.k8s:
+    state: present
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    definition: "{{ lookup('template', 'deployment.yaml.j2') | from_yaml }}"
+
+- name: Apply ruoyi service
+  kubernetes.core.k8s:
+    state: present
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    definition: "{{ lookup('template', 'service.yaml.j2') | from_yaml }}"
+
+- name: Wait for ruoyi deployment rollout
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    kind: Deployment
+    namespace: "{{ ruoyi_k3s_namespace }}"
+    name: ruoyi
+  register: ruoyi_deploy
+  until: >
+    ruoyi_deploy.resources[0].status.readyReplicas | default(0)
+    == (ruoyi_k3s_replicas | int)
+  retries: 30
+  delay: 10

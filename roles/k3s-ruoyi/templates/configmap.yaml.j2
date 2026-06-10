@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ruoyi-config
+  namespace: {{ ruoyi_k3s_namespace }}
+data:
+  LANG: "C.UTF-8"
+  JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8 -Xms1024m -Xmx1024m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m"
+  SPRING_DATASOURCE_DRUID_MASTER_URL: "jdbc:mysql://{{ proxysql_host }}:{{ proxysql_mysql_port }}/ry-vue?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai"
+  SPRING_DATA_REDIS_SENTINEL_MASTER: "{{ redis_sentinel_master_name }}"
+  SPRING_DATA_REDIS_SENTINEL_NODES: "{{ redis_sentinel_hosts | map('extract', hostvars, 'ansible_host') | map('regex_replace', '$', ':' ~ redis_sentinel_port) | join(',') }}"
