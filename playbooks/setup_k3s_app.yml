@@ -1,6 +1,12 @@
 ---
+# kubeconfig 由 k3s-server 经 delegate_to: localhost 写到控制节点 HOME，故消费端也必须落在控制节点。
+# 用 ops_nodes（bj-01）会让 k8s 模块在远端 bj-01 执行、读控制节点路径——手动跑控制节点恰是 bj-01 时
+# 侥幸同盘成功，但 Jenkins 控制节点是容器（HOME=/var/jenkins_home，与 bj-01 宿主机不同盘）时必然
+# "Invalid kube-config file. No configuration found."。kubeconfig 内 server 已是 gz-05 Tailscale IP，
+# 控制节点经 Tailscale 可直连 K3s API，无需绕 bj-01。
 - name: Deploy ruoyi onto K3s from control node
-  hosts: ops_nodes
+  hosts: localhost
+  connection: local
   gather_facts: false
   vars:
     k3s_kubeconfig: "{{ lookup('env', 'HOME') }}/.kube/k3s-ruoyi.yaml"

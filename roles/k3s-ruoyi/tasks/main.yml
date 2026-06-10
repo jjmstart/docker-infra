@@ -32,6 +32,8 @@
     kubeconfig: "{{ k3s_kubeconfig }}"
     definition: "{{ lookup('template', 'service.yaml.j2') | from_yaml }}"
 
+# --check 下前面的 apply 均为 dry-run，deployment 不会真正创建，readyReplicas 永远拿不到，
+# until 会重试到耗尽报错；故 dry-run 跳过，且只读查询显式 check_mode: false 保证真实执行时正常轮询。
 - name: Wait for ruoyi deployment rollout
   kubernetes.core.k8s_info:
     kubeconfig: "{{ k3s_kubeconfig }}"
@@ -44,3 +46,5 @@
     == (ruoyi_k3s_replicas | int)
   retries: 72
   delay: 10
+  check_mode: false
+  when: not ansible_check_mode
