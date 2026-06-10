@@ -20,6 +20,7 @@ RUN sed -i \
     && python3 -m pip install --break-system-packages --no-cache-dir \
        -i https://pypi.tuna.tsinghua.edu.cn/simple \
        ansible \
+       kubernetes \
     && rm -rf /var/lib/apt/lists/*
 
 # 官方镜像默认非 root，符合 Jenkins 安全实践
