@@ -143,6 +143,7 @@ k3s_api_port: 6443
 ruoyi_k3s_namespace: ruoyi
 ruoyi_k3s_nodeport: 30080      # gz-01 Nginx upstream 指向各 K3s 节点此端口
 ruoyi_k3s_replicas: 2
+ruoyi_upstream_target: k3s   # 切流时改为 k3s；回滚改回 compose
 
 # ── K3s 离线 (airgap) 安装（v1.9 实测调整）─────────────────────────────────────
 # 背景：gz 节点（腾讯/百度云广州）实测连不上 docker.io（curl http=000 超时），
