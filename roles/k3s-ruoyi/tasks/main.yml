@@ -42,5 +42,5 @@
   until: >
     ruoyi_deploy.resources[0].status.readyReplicas | default(0)
     == (ruoyi_k3s_replicas | int)
-  retries: 30
+  retries: 72
   delay: 10
