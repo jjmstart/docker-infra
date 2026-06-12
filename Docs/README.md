@@ -42,7 +42,7 @@
 | 场景                           | 应读的文件夹                                                                  |
 | ---------------------------- | ----------------------------------------------------------------------- |
 | 我想讨论下一次架构升级，还没有开始实施          | [proposals/](proposals/) → 读对应草案（如 `v1.5-alerting.md`）                  |
-| 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.8.md`（最新版）                       |
+| 我想快速了解当前集群是什么样的（节点、服务、IP、拓扑） | [architecture/](architecture/) → 读 `v1.9.md`（最新版）                       |
 | 我要开始执行某次架构演进，需要逐步操作指引        | [runbooks/](runbooks/) → 读对应版本手册（如 `v1.3-to-v1.4.md`）                   |
 | 演进刚完成，我想复盘做了什么、踩了什么坑、加深理解    | [retrospectives/](retrospectives/) → 读对应版本总结（如 `v1.2-retrospective.md`） |
 | 我想深入理解当前架构有哪些跨版本的隐性盲点         | [reviews/](reviews/) → 读对应主题审计（如 `v1.7-iac-completeness-audit.md`）      |
@@ -65,6 +65,7 @@
 | [proposals/v1.6-pipeline.md](proposals/v1.6-pipeline.md) | V1.6 | 应用交付流水线设计草案（已落地，最终状态见 `architecture/v1.6.md`） |
 | [proposals/v1.7-backup.md](proposals/v1.7-backup.md)     | V1.7 | 备份恢复最小闭环设计草案（已落地，最终状态见 `architecture/v1.7.md`）  |
 | [proposals/six-node-onboarding.md](proposals/six-node-onboarding.md) | `six-node-onboarding` | 六节点基础接入设计草案：gz-04/gz-05 Tailscale + Docker + node-exporter 纳管；base-access 在 6 台建 admin-alex，老四台鉴权 cutover 拆出 |
+| [proposals/k3s-stateless.md](proposals/k3s-stateless.md) | `k3s-stateless` | K3s 迁移无状态服务设计草案（已落地，最终状态见 `architecture/v1.9.md`） |
 | [proposals/proxysql-ha.md](proposals/proxysql-ha.md) | `proxysql-ha` | ProxySQL HA 化设计草案（占位，仅 PoC 待确认问题已填充） |
 
 
@@ -82,7 +83,8 @@
 | [architecture/v1.5.md](architecture/v1.5.md)     | V1.5 | Prometheus + Alertmanager + blackbox-exporter + 飞书通知告警闭环（历史归档）                            |
 | [architecture/v1.6.md](architecture/v1.6.md)     | V1.6 | 私有 Docker Registry + ruoyi CI 自动触发 + 参数化 CD + Smoke Test + Registry GC + 飞书双机器人（历史归档） |
 | [architecture/v1.7.md](architecture/v1.7.md)     | V1.7 | mysqldump 逻辑备份 + 阿里云 OSS 上传 + bj-01 恢复演练，实测 RTO 34 秒（历史归档） |
-| [architecture/v1.8.md](architecture/v1.8.md)     | V1.8 | 六节点基础接入：gz-04/gz-05 Tailscale + Docker Engine 29.5.2 + node-exporter；base-access 6 台纯追加 admin-alex（**当前最新**） |
+| [architecture/v1.8.md](architecture/v1.8.md)     | V1.8 | 六节点基础接入：gz-04/gz-05 Tailscale + Docker Engine 29.5.2 + node-exporter；base-access 6 台纯追加 admin-alex（历史归档） |
+| [architecture/v1.9.md](architecture/v1.9.md)     | V1.9 | K3s 无状态迁移：gz-06 接入 + 三节点全离线 airgap K3s（flannel over Tailscale）；ruoyi Deployment 2 副本切流 NodePort 30080，有状态服务留 Compose（**当前最新**） |
 
 
 ### runbooks/
@@ -99,6 +101,7 @@
 | [runbooks/v1.5-to-v1.6.md](runbooks/v1.5-to-v1.6.md) | V1.5 → V1.6 | 私有 Registry + ruoyi CI/CD 全链路操作手册                                       |
 | [runbooks/v1.6-to-v1.7.md](runbooks/v1.6-to-v1.7.md) | V1.6 → V1.7 | MySQL 逻辑备份 + OSS 上传 + bj-01 恢复演练操作手册                                    |
 | [runbooks/v1.7-to-v1.8.md](runbooks/v1.7-to-v1.8.md) | V1.7 → V1.8 | 六节点基础接入：gz-04/gz-05 Tailscale + Docker Engine + node-exporter 纳管，base-access 在 6 台纯追加 admin-alex（8 个 Phase / 框架·接入·监控·验收四个提交检查点） |
+| [runbooks/v1.8-to-v1.9.md](runbooks/v1.8-to-v1.9.md) | V1.8 → V1.9 | K3s 迁移无状态服务：gz-06 onboarding + 三节点全离线 airgap K3s；ruoyi 裸 YAML 五对象迁移 + Nginx 变量驱动切流 + 四类故障演练 + Compose 有界冷备（12 个 Phase / 集群·迁移·摘除三次提交检查点） |
 
 
 ### retrospectives/
@@ -115,6 +118,7 @@
 | [retrospectives/v1.6-retrospective.md](retrospectives/v1.6-retrospective.md) | V1.6 | 应用交付流水线全链路复盘                     |
 | [retrospectives/v1.7-retrospective.md](retrospectives/v1.7-retrospective.md) | V1.7 | 备份恢复闭环复盘（含 6 条踩坑，实测 RTO 34 秒）  |
 | [retrospectives/v1.8-retrospective.md](retrospectives/v1.8-retrospective.md) | V1.8 | 六节点基础接入复盘（含 8 条踩坑：remote_tmp 权限 / Tailscale IP 时序 / community.docker 兼容 / 镜像源解析）  |
+| [retrospectives/v1.9-retrospective.md](retrospectives/v1.9-retrospective.md) | V1.9 | K3s 无状态迁移复盘（含 9 条踩坑：mirror=cn 空操作 / docker.io 不可达 / check-mode 三连坑 / kubeconfig 错配 / Jenkins 容器缺 SDK / K8s node name 两套命名）  |
 
 
 ### reviews/

@@ -2,7 +2,7 @@
 
 ## 阶段目标
 
-将 `docker-infra` 集群从 v1.5 路线起点延伸至 v2.0，当前已落地到 v1.8（六节点基础接入，`arch-v1.8` 已推送）。每个子任务对应一个架构版本，每版本完成后需按文档规范完成 proposal → runbook → retrospective → 架构快照的完整流程。
+将 `docker-infra` 集群从 v1.5 路线起点延伸至 v2.0，当前已落地到 v1.9（K3s 无状态迁移，`arch-v1.9` 已推送）。每个子任务对应一个架构版本，每版本完成后需按文档规范完成 proposal → runbook → retrospective → 架构快照的完整流程。
 
 **当前起点**：v1.7 已完成备份恢复最小闭环（gz-03 mysqldump 逻辑备份 + 阿里云 OSS 上传 + bj-01 恢复演练，实测 RTO 34 秒），已通过端到端验收，Git tag `arch-v1.7` 已推送。
 
@@ -28,7 +28,7 @@
 | `app-cd-pipeline` | 应用交付流水线（镜像构建推送） | v1.6 | ✅ 已完成 |
 | `backup-restore-mvp` | 备份恢复最小闭环 | v1.7 | ✅ 已完成 |
 | `six-node-onboarding` | 六节点基础接入（gz-04/gz-05 Tailscale + Docker + 监控纳管） | v1.8 | ✅ 已完成 |
-| `k3s-stateless` | K3s 迁移无状态服务（gz-05 server+agent + gz-04 / gz-06 worker） | v1.9 | 待开始 |
+| `k3s-stateless` | K3s 迁移无状态服务（gz-05 server+agent + gz-04 / gz-06 worker） | v1.9 | ✅ 已完成 |
 | `helm-chart-mgmt` | Helm Chart 管理 K3s 应用 | v1.10 | 待开始 |
 | `service-migration` | 服务迁移（gz-01 入口/监控迁至 gz-04 + watchdog） | v1.11 | 待开始 |
 | `loki-logging` | Loki 日志集中管理（K3s + Helm） | v1.12 | 待开始 |

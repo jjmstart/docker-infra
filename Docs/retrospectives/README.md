@@ -14,3 +14,4 @@
 | [v1.6-retrospective.md](v1.6-retrospective.md) | V1.6 | 2026 年 | 应用交付链路复盘：私有 Docker Registry、ruoyi CI/CD 全链路打通、参数化部署回滚、Smoke Test、飞书职责分离通知、Registry GC Pipeline，全量验收通过，arch-v1.6 tag 已打 |
 | [v1.7-retrospective.md](v1.7-retrospective.md) | V1.7 | 2026 年 | 备份恢复闭环复盘：mysqldump + OSS 上传 + bj-01 恢复演练，实测 RTO 34 秒，含 IDE 未保存/RAM 授权/vault 密码文件等 6 条踩坑记录 |
 | [v1.8-retrospective.md](v1.8-retrospective.md) | V1.8 | 2026 年 6 月 | 六节点基础接入复盘：gz-04/gz-05 Tailscale + Docker + node-exporter，含 remote_tmp 权限/Tailscale IP 时序/community.docker 兼容/镜像源解析等 8 条踩坑记录 |
+| [v1.9-retrospective.md](v1.9-retrospective.md) | V1.9 | 2026 年 6 月 | K3s 无状态迁移复盘：gz-06 接入 + 三节点 airgap 集群 + ruoyi 迁移切流，四类故障演练公网探针 305/305 `200`，含 mirror=cn 空操作/check-mode 三连坑/kubeconfig 错配等 9 条踩坑记录 |

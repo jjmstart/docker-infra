@@ -20,7 +20,17 @@
 
 ## [Unreleased]
 
-下一版本主题为 [`k3s-stateless`](Docs/scheme/phase-1-architecture-upgrade.md#k3s-stateless)（在 gz-05 server+agent + gz-04 worker 的双节点 K3s 上迁移 ruoyi 无状态后端）。当前路线图见 `Docs/scheme/phase-1-architecture-upgrade.md`。
+下一版本主题为 [`helm-chart-mgmt`](Docs/scheme/phase-1-architecture-upgrade.md#helm-chart-mgmt)（将 ruoyi 的 K3s 裸 YAML 封装为 Helm Chart，统一镜像 tag 注入，消除 v1.9 遗留的 Deployment image 双轨制）。当前路线图见 `Docs/scheme/phase-1-architecture-upgrade.md`。
+
+---
+
+## [arch-v1.9] — 2026-06-12
+
+**K3s 迁移无状态服务**：新接入腾讯云·广州常驻节点 gz-06（复用 v1.8 onboarding 流程），在 gz-05（server）+ gz-04 / gz-06（agent worker）上以全离线 airgap 方式拉起 K3s `v1.35.5+k3s1` 三节点集群（bj-01 经 DaoCloud 代理预置二进制 + 镜像包，apiserver / flannel VXLAN 流量强制走 Tailscale）；ruoyi 无状态后端从 gz-02 / gz-03 Compose 迁为 `ruoyi` namespace 下 Deployment 2 副本（跨双 worker 打散、`maxUnavailable:0`），经 NodePort 30080 由 gz-01 Nginx 变量驱动切流；滚动更新 + `rollout undo` 回滚与四类故障演练（坏镜像 / 坏探针 / drain / reboot 冷启动自愈）全部通过，演练期间公网探针 305/305 全 `200`。有状态服务（MySQL / Redis / ProxySQL）不进 K3s，数据层零配置变更；Compose 老副本 `stop` 转为有界冷备（至 2026-06-19）。新增 IaC 资产：`roles/k3s-airgap|k3s-server|k3s-agent|k3s-ruoyi/`、`playbooks/setup_k3s{,_app}.yml`、inventory K3s 分组、vault `k3s_token`；`jenkins-ansible` 镜像固化 `kubernetes` Python SDK。
+
+- 详细架构状态：[`Docs/architecture/v1.9.md`](Docs/architecture/v1.9.md)
+- 升级手册：[`Docs/runbooks/v1.8-to-v1.9.md`](Docs/runbooks/v1.8-to-v1.9.md)
+- 复盘：[`Docs/retrospectives/v1.9-retrospective.md`](Docs/retrospectives/v1.9-retrospective.md)
 
 ---
 

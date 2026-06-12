@@ -14,4 +14,5 @@
 | [v1.5.md](v1.5.md) | V1.5 | 告警闭环：新增 Prometheus 规则、blackbox-exporter、Alertmanager 和飞书 webhook 通知 | 历史归档 |
 | [v1.6.md](v1.6.md) | V1.6 | 完整应用交付链路：私有 Docker Registry、ruoyi CI 自动触发、参数化 CD、Smoke Test、Registry GC、飞书双机器人 | 历史归档 |
 | [v1.7.md](v1.7.md) | V1.7 | 备份恢复最小闭环：mysqldump 逻辑备份、阿里云 OSS 上传、bj-01 恢复演练，实测 RTO 34 秒 | 历史归档 |
-| [v1.8.md](v1.8.md) | V1.8 | 六节点基础接入：gz-04/gz-05 Tailscale 入网 + Docker Engine 29.5.2 + node-exporter；base-access 在 6 台纯追加 admin-alex | **当前最新** ✓ |
+| [v1.8.md](v1.8.md) | V1.8 | 六节点基础接入：gz-04/gz-05 Tailscale 入网 + Docker Engine 29.5.2 + node-exporter；base-access 在 6 台纯追加 admin-alex | 历史归档 |
+| [v1.9.md](v1.9.md) | V1.9 | K3s 无状态迁移：gz-06 接入 + gz-05/gz-04/gz-06 三节点全离线 airgap K3s（flannel over Tailscale）；ruoyi 迁为 Deployment 2 副本并切流 NodePort 30080，有状态服务留 Compose | **当前最新** ✓ |

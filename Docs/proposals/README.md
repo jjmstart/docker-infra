@@ -10,5 +10,5 @@
 | [v1.6-pipeline.md](v1.6-pipeline.md) | V1.6 | 应用自动化交付流水线：私有 Registry + CI/CD 解耦 + Smoke Test | 已落地 |
 | [v1.7-backup.md](v1.7-backup.md) | V1.7 | 备份恢复最小闭环：mysqldump + OSS 上传 + bj-01 恢复演练 + RPO/RTO 说明 | 已落地 |
 | [six-node-onboarding.md](six-node-onboarding.md) | `six-node-onboarding` | 六节点基础接入：gz-04/gz-05 Tailscale + Docker + node-exporter 纳管；base-access 在 6 台建 admin-alex，老四台 cutover 拆出 | 已落地（v1.8，`arch-v1.8`）|
-| [k3s-stateless.md](k3s-stateless.md) | `k3s-stateless` | K3s 迁移无状态服务：gz-05 server + gz-04/gz-06 worker 三节点（v1.8 后新增常驻 worker gz-06），ruoyi 裸 YAML 2 副本跨 gz-04/gz-06，NodePort + gz-01 Nginx，有状态服务留 Compose | 草案讨论中 |
+| [k3s-stateless.md](k3s-stateless.md) | `k3s-stateless` | K3s 迁移无状态服务：gz-05 server + gz-04/gz-06 worker 三节点（v1.8 后新增常驻 worker gz-06），ruoyi 裸 YAML 2 副本跨 gz-04/gz-06，NodePort + gz-01 Nginx，有状态服务留 Compose | 已落地（v1.9，`arch-v1.9`）|
 | [proxysql-ha.md](proxysql-ha.md) | `proxysql-ha` | ProxySQL HA 化：Cluster 双实例 + Admin SQL runtime 同步 + 应用 JDBC 多端点 | 草案占位（PoC 待验证） |

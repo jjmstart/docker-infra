@@ -1,6 +1,6 @@
 # 架构草案 — K3s 迁移无状态服务
 
-> **状态**：草案讨论中
+> **状态**：已落地（v1.9，`arch-v1.9`），最终状态见 [`architecture/v1.9.md`](../architecture/v1.9.md)
 > **目标主题**：[`k3s-stateless`](../scheme/phase-1-architecture-upgrade.md#k3s-stateless)（当前目标版本以路线图为准）
 > **前置主题**：[`six-node-onboarding`](../scheme/phase-1-architecture-upgrade.md#six-node-onboarding)（已落地 v1.8；gz-04 / gz-05 已接入 Tailscale + Docker Engine + node-exporter，admin-alex 鉴权就绪）
 > **节点增量**：v1.8 落地后新增腾讯云·广州 4C4G 节点 **gz-06**（常驻 K3s worker），onboarding（Tailscale `--hostname gz-06` + base-access + docker-daemon + node-exporter，复用 v1.8 流程）是本主题 K3s 安装的前置；引入动因见 §1.1
