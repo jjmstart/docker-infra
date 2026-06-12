@@ -7,3 +7,4 @@
 | 文件 | 演练时架构版本 | 演练范围 | 状态 |
 |------|---------------|---------|------|
 | [v1.7-gz02-app-failure.md](v1.7-gz02-app-failure.md) | V1.7 | gz-02 ruoyi-admin-2 故障下 Nginx upstream 摘除、blackbox 探测延迟、告警链路时延 | 计划中 |
+| [v1.9-k3s-failure-drills.md](v1.9-k3s-failure-drills.md) | V1.9 | K3s 若依三类故障演练：ImagePullBackOff、readinessProbe 配错、drain worker 节点重调度 | 已完成 |
